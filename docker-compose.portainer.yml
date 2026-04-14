@@ -3,7 +3,6 @@ version: "3.9"
 services:
   stevens-support-helper-server:
     image: ghcr.io/flathack/stevens-support-app:latest
-    container_name: stevens-support-helper-server
     restart: unless-stopped
     ports:
       - "5000:5000"

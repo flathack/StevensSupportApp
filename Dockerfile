@@ -1,4 +1,44 @@
-# Stage 1: Build Server
+# Build Server
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS server-build
+WORKDIR /src
+
+COPY src/StevensSupportHelper.Server/StevensSupportHelper.Server.csproj ./StevensSupportHelper.Server/
+COPY src/StevensSupportHelper.Shared/StevensSupportHelper.Shared.csproj ./StevensSupportHelper.Shared/
+RUN dotnet restore StevensSupportHelper.Server/StevensSupportHelper.Server.csproj
+
+COPY src/StevensSupportHelper.Server/ ./StevensSupportHelper.Server/
+COPY src/StevensSupportHelper.Shared/ ./StevensSupportHelper.Shared/
+RUN dotnet publish StevensSupportHelper.Server/StevensSupportHelper.Server.csproj -c Release -o /app/server
+
+# Build AdminWeb
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS adminweb-build
+
+COPY src/StevensSupportHelper.AdminWeb/StevensSupportHelper.AdminWeb.csproj ./StevensSupportHelper.AdminWeb/
+RUN dotnet restore StevensSupportHelper.AdminWeb/StevensSupportHelper.AdminWeb.csproj
+
+COPY src/StevensSupportHelper.AdminWeb/ ./StevensSupportHelper.AdminWeb/
+WORKDIR /src/StevensSupportHelper.AdminWeb
+RUN dotnet publish -c Release -o /app/adminweb
+
+# Runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0
+WORKDIR /app
+
+RUN mkdir /data
+VOLUME /data
+
+COPY --from=server-build /app/server /app/server
+COPY --from=adminweb-build /app/adminweb /app/adminweb
+
+ENV ASPNETCORE_URLS=http://+:5000
+ENV StevensSupportHelperServer__Provider=Sqlite
+ENV StevensSupportHelperServer__DatabasePath=/data/server-state.db
+ENV StevensSupportHelperServer__StateFilePath=/data/server-state.json
+ENV ASPNETCORE_ENVIRONMENT=Production
+
+EXPOSE 5000
+
+ENTRYPOINT ["dotnet", "/app/server/StevensSupportHelper.Server.dll"]# Stage 1: Build Server
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS server-builder
 WORKDIR /src
 COPY src/StevensSupportHelper.Server/StevensSupportHelper.Server.csproj ./StevensSupportHelper.Server/

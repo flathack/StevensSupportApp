@@ -71,6 +71,42 @@ public sealed class UserService
         return (user, string.Empty);
     }
 
+    public (PersistedUserRecord? User, bool Created, string Error) EnsureBootstrapUser(string username, string password, string displayName, List<string> roles)
+    {
+        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+        {
+            return (null, false, "Username and password are required.");
+        }
+
+        var normalizedUsername = username.Trim().ToLowerInvariant();
+        var effectiveDisplayName = string.IsNullOrWhiteSpace(displayName) ? normalizedUsername : displayName.Trim();
+        var effectiveRoles = roles.Count > 0 ? roles : ["Administrator", "Operator", "Auditor"];
+
+        var existingUser = GetUserByUsername(normalizedUsername);
+        if (existingUser is null)
+        {
+            var (createdUser, error) = CreateUser(normalizedUsername, password, effectiveDisplayName, effectiveRoles);
+            return (createdUser, createdUser is not null, error);
+        }
+
+        var newHash = HashPassword(password);
+        var updateResult = UpdateUser(existingUser.Id, user =>
+        {
+            user.Username = normalizedUsername;
+            user.PasswordHash = newHash;
+            user.DisplayName = effectiveDisplayName;
+            user.Roles = effectiveRoles;
+            user.IsActive = true;
+        });
+
+        if (!updateResult.Success)
+        {
+            return (null, false, updateResult.Error);
+        }
+
+        return (GetUserById(existingUser.Id), false, string.Empty);
+    }
+
     public (bool Success, string Error) UpdateUserPassword(Guid userId, string oldPassword, string newPassword)
     {
         var user = GetUserById(userId);

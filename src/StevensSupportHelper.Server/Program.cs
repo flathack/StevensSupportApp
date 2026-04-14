@@ -1009,11 +1009,6 @@ static void EnsureBootstrapUser(WebApplication app)
     }
 
     var userService = scope.ServiceProvider.GetRequiredService<UserService>();
-    if (userService.GetUserByUsername(options.Username) is not null)
-    {
-        return;
-    }
-
     var roles = options.Roles.Count > 0
         ? options.Roles
         : ["Administrator", "Operator", "Auditor"];
@@ -1022,14 +1017,17 @@ static void EnsureBootstrapUser(WebApplication app)
         ? options.Username
         : options.DisplayName;
 
-    var (_, error) = userService.CreateUser(options.Username, options.Password, displayName, roles);
+    var (_, created, error) = userService.EnsureBootstrapUser(options.Username, options.Password, displayName, roles);
     if (!string.IsNullOrWhiteSpace(error))
     {
         AppDiagnostics.WriteEvent("Server", "BootstrapUserFailed", error);
     }
     else
     {
-        AppDiagnostics.WriteEvent("Server", "BootstrapUserCreated", $"Bootstrap user '{options.Username}' created.");
+        AppDiagnostics.WriteEvent(
+            "Server",
+            created ? "BootstrapUserCreated" : "BootstrapUserUpdated",
+            $"Bootstrap user '{options.Username}' {(created ? "created" : "updated")}.");
     }
 }
 

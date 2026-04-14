@@ -24,13 +24,11 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseStaticFiles();
 app.UseRouting();
 app.UseSession();
 app.UseAuthorization();
-
-app.MapStaticAssets();
-app.MapRazorPages()
-   .WithStaticAssets();
+app.MapRazorPages();
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 

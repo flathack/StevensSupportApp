@@ -6,6 +6,14 @@
 .git/
 .gitignore
 README.md
+readme.md**/bin/
+**/obj/
+**/.vs/
+**/.idea/
+**/.vscode/
+.git/
+.gitignore
+README.md
 readme.md
 .github/**/bin/
 **/obj/

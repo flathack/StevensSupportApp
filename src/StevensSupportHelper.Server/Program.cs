@@ -102,8 +102,14 @@ var manageRoles = new[] { AdminRole.Operator, AdminRole.Administrator };
 app.MapGet("/health", () => Results.Ok(new { status = "ok", utc = DateTimeOffset.UtcNow }));
 
 // Auth API
-app.MapPost("/api/auth/register", (RegisterRequest request, UserService userService) =>
+app.MapPost("/api/auth/register", (HttpContext httpContext, RegisterRequest request, UserService userService, JwtTokenService jwtService, AdminAuthService authService) =>
 {
+    var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out _, manageRoles);
+    if (authorizationFailure is not null)
+    {
+        return authorizationFailure;
+    }
+
     var (user, error) = userService.CreateUser(
         request.Username,
         request.Password,
@@ -120,7 +126,7 @@ app.MapPost("/api/auth/register", (RegisterRequest request, UserService userServ
         user.Username,
         user.DisplayName,
         user.Roles,
-        "User registered successfully."));
+        "Benutzer wurde erfolgreich angelegt."));
 });
 
 app.MapPost("/api/auth/login", (LoginRequest request, UserService userService, JwtTokenService jwtService) =>
@@ -170,7 +176,7 @@ app.MapPost("/api/auth/change-password", (HttpContext httpContext, ChangePasswor
         return Results.BadRequest(new { message = errorMessage });
     }
 
-    return Results.Ok(new { message = "Password changed successfully." });
+    return Results.Ok(new { message = "Passwort wurde erfolgreich geändert." });
 });
 
 app.MapGet("/api/auth/me", (HttpContext httpContext, UserService userService, JwtTokenService jwtService) =>
@@ -193,7 +199,7 @@ app.MapGet("/api/auth/me", (HttpContext httpContext, UserService userService, Jw
 // User management (Admin only)
 app.MapGet("/api/auth/users", (HttpContext httpContext, UserService userService, JwtTokenService jwtService, AdminAuthService authService) =>
 {
-    var authorizationFailure = RequireAdmin(httpContext, authService, out _, readRoles);
+    var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out _, readRoles);
     if (authorizationFailure is not null)
     {
         return authorizationFailure;
@@ -203,9 +209,43 @@ app.MapGet("/api/auth/users", (HttpContext httpContext, UserService userService,
     return Results.Ok(users.Select(u => new UserInfoResponse(u.Id, u.Username, u.DisplayName, u.Roles, u.IsMfaEnabled, u.LastLoginAtUtc)));
 });
 
-app.MapDelete("/api/auth/users/{userId:guid}", (HttpContext httpContext, Guid userId, UserService userService, AdminAuthService authService) =>
+app.MapPut("/api/auth/users/{userId:guid}/roles", (HttpContext httpContext, Guid userId, UpdateUserRolesRequest request, UserService userService, JwtTokenService jwtService, AdminAuthService authService) =>
 {
-    var authorizationFailure = RequireAdmin(httpContext, authService, out _, manageRoles);
+    var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out _, manageRoles);
+    if (authorizationFailure is not null)
+    {
+        return authorizationFailure;
+    }
+
+    var (success, error) = userService.UpdateUserRoles(userId, request.Roles);
+    if (!success)
+    {
+        return Results.NotFound(new { message = error });
+    }
+
+    return Results.Ok(new { message = "Benutzerrollen aktualisiert." });
+});
+
+app.MapPost("/api/auth/users/{userId:guid}/reset-password", (HttpContext httpContext, Guid userId, ResetPasswordRequest request, UserService userService, JwtTokenService jwtService, AdminAuthService authService) =>
+{
+    var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out _, manageRoles);
+    if (authorizationFailure is not null)
+    {
+        return authorizationFailure;
+    }
+
+    var (success, error) = userService.ResetUserPassword(userId, request.NewPassword);
+    if (!success)
+    {
+        return Results.NotFound(new { message = error });
+    }
+
+    return Results.Ok(new { message = "Passwort wurde zurückgesetzt." });
+});
+
+app.MapDelete("/api/auth/users/{userId:guid}", (HttpContext httpContext, Guid userId, UserService userService, JwtTokenService jwtService, AdminAuthService authService) =>
+{
+    var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out _, manageRoles);
     if (authorizationFailure is not null)
     {
         return authorizationFailure;
@@ -217,7 +257,7 @@ app.MapDelete("/api/auth/users/{userId:guid}", (HttpContext httpContext, Guid us
         return Results.NotFound(new { message = error });
     }
 
-    return Results.Ok(new { message = "User deleted." });
+    return Results.Ok(new { message = "Benutzer wurde gelöscht." });
 });
 
 app.MapPost("/api/clients/register", (RegisterClientRequest request, ClientRegistry registry) =>
@@ -323,7 +363,7 @@ app.MapPost("/api/clients/agent-jobs/{jobId:guid}/complete", (Guid jobId, Comple
 
 app.MapGet("/api/admin/session", (HttpContext httpContext, AdminAuthService authService) =>
 {
-	var authorizationFailure = RequireAdmin(httpContext, authService, out var admin, readRoles);
+	var authorizationFailure = RequireAdmin(httpContext, authService, jwtService: null, userService: null, out var admin, readRoles);
 	if (authorizationFailure is not null)
 	{
 		return authorizationFailure;
@@ -335,9 +375,9 @@ app.MapGet("/api/admin/session", (HttpContext httpContext, AdminAuthService auth
 		!string.IsNullOrWhiteSpace(admin.TotpSecret)));
 });
 
-app.MapGet("/api/admin/clients", (HttpContext httpContext, ClientRegistry registry, AdminAuthService authService) =>
+app.MapGet("/api/admin/clients", (HttpContext httpContext, ClientRegistry registry, AdminAuthService authService, JwtTokenService jwtService, UserService userService) =>
 {
-	var authorizationFailure = RequireAdmin(httpContext, authService, out _, readRoles);
+	var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out _, readRoles);
 	if (authorizationFailure is not null)
 	{
 		return authorizationFailure;
@@ -346,9 +386,21 @@ app.MapGet("/api/admin/clients", (HttpContext httpContext, ClientRegistry regist
 	return Results.Ok(registry.GetClients());
 });
 
-app.MapGet("/api/admin/clients/{clientId:guid}/chat-messages", (HttpContext httpContext, Guid clientId, ClientRegistry registry, AdminAuthService authService) =>
+app.MapGet("/api/admin/clients/{clientId:guid}", (HttpContext httpContext, Guid clientId, ClientRegistry registry, AdminAuthService authService, JwtTokenService jwtService, UserService userService) =>
 {
-	var authorizationFailure = RequireAdmin(httpContext, authService, out _, readRoles);
+	var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out _, readRoles);
+	if (authorizationFailure is not null)
+	{
+		return authorizationFailure;
+	}
+
+	var client = registry.GetClients().FirstOrDefault(entry => entry.ClientId == clientId);
+	return client is null ? Results.NotFound() : Results.Ok(client);
+});
+
+app.MapGet("/api/admin/clients/{clientId:guid}/chat-messages", (HttpContext httpContext, Guid clientId, ClientRegistry registry, AdminAuthService authService, JwtTokenService jwtService, UserService userService) =>
+{
+	var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out _, readRoles);
 	if (authorizationFailure is not null)
 	{
 		return authorizationFailure;
@@ -364,9 +416,9 @@ app.MapGet("/api/admin/clients/{clientId:guid}/chat-messages", (HttpContext http
 	}
 });
 
-app.MapPost("/api/admin/clients/{clientId:guid}/chat-messages", (HttpContext httpContext, Guid clientId, SendAdminChatMessageRequest request, ClientRegistry registry, AdminAuthService authService) =>
+app.MapPost("/api/admin/clients/{clientId:guid}/chat-messages", (HttpContext httpContext, Guid clientId, SendAdminChatMessageRequest request, ClientRegistry registry, AdminAuthService authService, JwtTokenService jwtService, UserService userService) =>
 {
-	var authorizationFailure = RequireAdmin(httpContext, authService, out var admin, manageRoles);
+	var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out var admin, manageRoles);
 	if (authorizationFailure is not null)
 	{
 		return authorizationFailure;
@@ -386,9 +438,9 @@ app.MapPost("/api/admin/clients/{clientId:guid}/chat-messages", (HttpContext htt
 	}
 });
 
-app.MapGet("/api/admin/audit", (HttpContext httpContext, int? take, ClientRegistry registry, AdminAuthService authService) =>
+app.MapGet("/api/admin/audit", (HttpContext httpContext, int? take, ClientRegistry registry, AdminAuthService authService, JwtTokenService jwtService, UserService userService) =>
 {
-	var authorizationFailure = RequireAdmin(httpContext, authService, out _, readRoles);
+	var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out _, readRoles);
 	if (authorizationFailure is not null)
 	{
 		return authorizationFailure;
@@ -397,9 +449,36 @@ app.MapGet("/api/admin/audit", (HttpContext httpContext, int? take, ClientRegist
 	return Results.Ok(registry.GetAuditEntries(take ?? 50));
 });
 
-app.MapGet("/api/admin/file-transfers/{transferId:guid}", (HttpContext httpContext, Guid transferId, ClientRegistry registry, AdminAuthService authService) =>
+app.MapGet("/api/admin/audit-entries", (HttpContext httpContext, int? limit, ClientRegistry registry, AdminAuthService authService, JwtTokenService jwtService, UserService userService) =>
 {
-	var authorizationFailure = RequireAdmin(httpContext, authService, out _, readRoles);
+	var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out _, readRoles);
+	if (authorizationFailure is not null)
+	{
+		return authorizationFailure;
+	}
+
+	return Results.Ok(registry.GetAuditEntries(limit ?? 50));
+});
+
+app.MapGet("/api/admin/remote-actions", (HttpContext httpContext, AdminAuthService authService, JwtTokenService jwtService, UserService userService) =>
+{
+	var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out _, readRoles);
+	if (authorizationFailure is not null)
+	{
+		return authorizationFailure;
+	}
+
+	return Results.Ok(new[]
+	{
+		new { Name = "collect_support_snapshot.ps1", Description = "Sammelt Diagnosedaten und eine Systemübersicht.", RequiresElevation = false },
+		new { Name = "restart_spooler.ps1", Description = "Startet den Windows-Druckspooler neu.", RequiresElevation = true },
+		new { Name = "winget_update_all.ps1", Description = "Plant Softwareupdates per winget ein.", RequiresElevation = true }
+	});
+});
+
+app.MapGet("/api/admin/file-transfers/{transferId:guid}", (HttpContext httpContext, Guid transferId, ClientRegistry registry, AdminAuthService authService, JwtTokenService jwtService, UserService userService) =>
+{
+	var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out _, readRoles);
 	if (authorizationFailure is not null)
 	{
 		return authorizationFailure;
@@ -415,9 +494,9 @@ app.MapGet("/api/admin/file-transfers/{transferId:guid}", (HttpContext httpConte
 	}
 });
 
-app.MapGet("/api/admin/file-transfers/{transferId:guid}/content", (HttpContext httpContext, Guid transferId, ClientRegistry registry, AdminAuthService authService) =>
+app.MapGet("/api/admin/file-transfers/{transferId:guid}/content", (HttpContext httpContext, Guid transferId, ClientRegistry registry, AdminAuthService authService, JwtTokenService jwtService, UserService userService) =>
 {
-	var authorizationFailure = RequireAdmin(httpContext, authService, out _, readRoles);
+	var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out _, readRoles);
 	if (authorizationFailure is not null)
 	{
 		return authorizationFailure;
@@ -437,9 +516,9 @@ app.MapGet("/api/admin/file-transfers/{transferId:guid}/content", (HttpContext h
 	}
 });
 
-app.MapPost("/api/admin/clients/{clientId:guid}/support-requests", (HttpContext httpContext, Guid clientId, CreateSupportRequestRequest request, ClientRegistry registry, AdminAuthService authService) =>
+app.MapPost("/api/admin/clients/{clientId:guid}/support-requests", (HttpContext httpContext, Guid clientId, CreateSupportRequestRequest request, ClientRegistry registry, AdminAuthService authService, JwtTokenService jwtService, UserService userService) =>
 {
-	var authorizationFailure = RequireAdmin(httpContext, authService, out var admin, manageRoles);
+	var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out var admin, manageRoles);
 	if (authorizationFailure is not null)
 	{
 		return authorizationFailure;
@@ -459,9 +538,9 @@ app.MapPost("/api/admin/clients/{clientId:guid}/support-requests", (HttpContext 
 	}
 });
 
-app.MapPost("/api/admin/clients/{clientId:guid}/file-transfers/upload", (HttpContext httpContext, Guid clientId, QueueFileUploadRequest request, ClientRegistry registry, AdminAuthService authService) =>
+app.MapPost("/api/admin/clients/{clientId:guid}/file-transfers/upload", (HttpContext httpContext, Guid clientId, QueueFileUploadRequest request, ClientRegistry registry, AdminAuthService authService, JwtTokenService jwtService, UserService userService) =>
 {
-	var authorizationFailure = RequireAdmin(httpContext, authService, out var admin, manageRoles);
+	var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out var admin, manageRoles);
 	if (authorizationFailure is not null)
 	{
 		return authorizationFailure;
@@ -481,9 +560,9 @@ app.MapPost("/api/admin/clients/{clientId:guid}/file-transfers/upload", (HttpCon
 	}
 });
 
-app.MapPost("/api/admin/clients/{clientId:guid}/file-transfers/download", (HttpContext httpContext, Guid clientId, QueueFileDownloadRequest request, ClientRegistry registry, AdminAuthService authService) =>
+app.MapPost("/api/admin/clients/{clientId:guid}/file-transfers/download", (HttpContext httpContext, Guid clientId, QueueFileDownloadRequest request, ClientRegistry registry, AdminAuthService authService, JwtTokenService jwtService, UserService userService) =>
 {
-	var authorizationFailure = RequireAdmin(httpContext, authService, out var admin, manageRoles);
+	var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out var admin, manageRoles);
 	if (authorizationFailure is not null)
 	{
 		return authorizationFailure;
@@ -503,9 +582,9 @@ app.MapPost("/api/admin/clients/{clientId:guid}/file-transfers/download", (HttpC
 	}
 });
 
-app.MapPost("/api/admin/clients/{clientId:guid}/active-session/end", (HttpContext httpContext, Guid clientId, ClientRegistry registry, AdminAuthService authService) =>
+app.MapPost("/api/admin/clients/{clientId:guid}/active-session/end", (HttpContext httpContext, Guid clientId, ClientRegistry registry, AdminAuthService authService, JwtTokenService jwtService, UserService userService) =>
 {
-	var authorizationFailure = RequireAdmin(httpContext, authService, out var admin, manageRoles);
+	var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out var admin, manageRoles);
 	if (authorizationFailure is not null)
 	{
 		return authorizationFailure;
@@ -525,9 +604,9 @@ app.MapPost("/api/admin/clients/{clientId:guid}/active-session/end", (HttpContex
 	}
 });
 
-app.MapPost("/api/admin/clients/{clientId:guid}/agent-jobs/process-snapshot", (HttpContext httpContext, Guid clientId, ClientRegistry registry, AdminAuthService authService) =>
+app.MapPost("/api/admin/clients/{clientId:guid}/agent-jobs/process-snapshot", (HttpContext httpContext, Guid clientId, ClientRegistry registry, AdminAuthService authService, JwtTokenService jwtService, UserService userService) =>
 {
-	var authorizationFailure = RequireAdmin(httpContext, authService, out var admin, manageRoles);
+	var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out var admin, manageRoles);
 	if (authorizationFailure is not null)
 	{
 		return authorizationFailure;
@@ -547,9 +626,9 @@ app.MapPost("/api/admin/clients/{clientId:guid}/agent-jobs/process-snapshot", (H
 	}
 });
 
-app.MapPost("/api/admin/clients/{clientId:guid}/agent-jobs/windows-update-scan", (HttpContext httpContext, Guid clientId, ClientRegistry registry, AdminAuthService authService) =>
+app.MapPost("/api/admin/clients/{clientId:guid}/agent-jobs/windows-update-scan", (HttpContext httpContext, Guid clientId, ClientRegistry registry, AdminAuthService authService, JwtTokenService jwtService, UserService userService) =>
 {
-	var authorizationFailure = RequireAdmin(httpContext, authService, out var admin, manageRoles);
+	var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out var admin, manageRoles);
 	if (authorizationFailure is not null)
 	{
 		return authorizationFailure;
@@ -569,9 +648,9 @@ app.MapPost("/api/admin/clients/{clientId:guid}/agent-jobs/windows-update-scan",
 	}
 });
 
-app.MapPost("/api/admin/clients/{clientId:guid}/agent-jobs/windows-update-install", (HttpContext httpContext, Guid clientId, ClientRegistry registry, AdminAuthService authService) =>
+app.MapPost("/api/admin/clients/{clientId:guid}/agent-jobs/windows-update-install", (HttpContext httpContext, Guid clientId, ClientRegistry registry, AdminAuthService authService, JwtTokenService jwtService, UserService userService) =>
 {
-	var authorizationFailure = RequireAdmin(httpContext, authService, out var admin, manageRoles);
+	var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out var admin, manageRoles);
 	if (authorizationFailure is not null)
 	{
 		return authorizationFailure;
@@ -591,9 +670,9 @@ app.MapPost("/api/admin/clients/{clientId:guid}/agent-jobs/windows-update-instal
 	}
 });
 
-app.MapPost("/api/admin/clients/{clientId:guid}/agent-jobs/registry-snapshot", (HttpContext httpContext, Guid clientId, AgentRegistrySnapshotRequest request, ClientRegistry registry, AdminAuthService authService) =>
+app.MapPost("/api/admin/clients/{clientId:guid}/agent-jobs/registry-snapshot", (HttpContext httpContext, Guid clientId, AgentRegistrySnapshotRequest request, ClientRegistry registry, AdminAuthService authService, JwtTokenService jwtService, UserService userService) =>
 {
-	var authorizationFailure = RequireAdmin(httpContext, authService, out var admin, manageRoles);
+	var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out var admin, manageRoles);
 	if (authorizationFailure is not null)
 	{
 		return authorizationFailure;
@@ -613,9 +692,9 @@ app.MapPost("/api/admin/clients/{clientId:guid}/agent-jobs/registry-snapshot", (
 	}
 });
 
-app.MapPost("/api/admin/clients/{clientId:guid}/agent-jobs/service-snapshot", (HttpContext httpContext, Guid clientId, ClientRegistry registry, AdminAuthService authService) =>
+app.MapPost("/api/admin/clients/{clientId:guid}/agent-jobs/service-snapshot", (HttpContext httpContext, Guid clientId, ClientRegistry registry, AdminAuthService authService, JwtTokenService jwtService, UserService userService) =>
 {
-	var authorizationFailure = RequireAdmin(httpContext, authService, out var admin, manageRoles);
+	var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out var admin, manageRoles);
 	if (authorizationFailure is not null)
 	{
 		return authorizationFailure;
@@ -635,9 +714,9 @@ app.MapPost("/api/admin/clients/{clientId:guid}/agent-jobs/service-snapshot", (H
 	}
 });
 
-app.MapPost("/api/admin/clients/{clientId:guid}/agent-jobs/service-control", (HttpContext httpContext, Guid clientId, AgentServiceControlRequest request, ClientRegistry registry, AdminAuthService authService) =>
+app.MapPost("/api/admin/clients/{clientId:guid}/agent-jobs/service-control", (HttpContext httpContext, Guid clientId, AgentServiceControlRequest request, ClientRegistry registry, AdminAuthService authService, JwtTokenService jwtService, UserService userService) =>
 {
-	var authorizationFailure = RequireAdmin(httpContext, authService, out var admin, manageRoles);
+	var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out var admin, manageRoles);
 	if (authorizationFailure is not null)
 	{
 		return authorizationFailure;
@@ -657,9 +736,9 @@ app.MapPost("/api/admin/clients/{clientId:guid}/agent-jobs/service-control", (Ht
 	}
 });
 
-app.MapPost("/api/admin/clients/{clientId:guid}/agent-jobs/script-execution", (HttpContext httpContext, Guid clientId, AgentScriptExecutionRequest request, ClientRegistry registry, AdminAuthService authService) =>
+app.MapPost("/api/admin/clients/{clientId:guid}/agent-jobs/script-execution", (HttpContext httpContext, Guid clientId, AgentScriptExecutionRequest request, ClientRegistry registry, AdminAuthService authService, JwtTokenService jwtService, UserService userService) =>
 {
-	var authorizationFailure = RequireAdmin(httpContext, authService, out var admin, manageRoles);
+	var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out var admin, manageRoles);
 	if (authorizationFailure is not null)
 	{
 		return authorizationFailure;
@@ -679,9 +758,9 @@ app.MapPost("/api/admin/clients/{clientId:guid}/agent-jobs/script-execution", (H
 	}
 });
 
-app.MapPost("/api/admin/clients/{clientId:guid}/agent-jobs/power-plan-snapshot", (HttpContext httpContext, Guid clientId, ClientRegistry registry, AdminAuthService authService) =>
+app.MapPost("/api/admin/clients/{clientId:guid}/agent-jobs/power-plan-snapshot", (HttpContext httpContext, Guid clientId, ClientRegistry registry, AdminAuthService authService, JwtTokenService jwtService, UserService userService) =>
 {
-	var authorizationFailure = RequireAdmin(httpContext, authService, out var admin, manageRoles);
+	var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out var admin, manageRoles);
 	if (authorizationFailure is not null)
 	{
 		return authorizationFailure;
@@ -701,9 +780,9 @@ app.MapPost("/api/admin/clients/{clientId:guid}/agent-jobs/power-plan-snapshot",
 	}
 });
 
-app.MapPost("/api/admin/clients/{clientId:guid}/agent-jobs/power-plan-activate", (HttpContext httpContext, Guid clientId, AgentPowerPlanActivateRequest request, ClientRegistry registry, AdminAuthService authService) =>
+app.MapPost("/api/admin/clients/{clientId:guid}/agent-jobs/power-plan-activate", (HttpContext httpContext, Guid clientId, AgentPowerPlanActivateRequest request, ClientRegistry registry, AdminAuthService authService, JwtTokenService jwtService, UserService userService) =>
 {
-	var authorizationFailure = RequireAdmin(httpContext, authService, out var admin, manageRoles);
+	var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out var admin, manageRoles);
 	if (authorizationFailure is not null)
 	{
 		return authorizationFailure;
@@ -723,9 +802,9 @@ app.MapPost("/api/admin/clients/{clientId:guid}/agent-jobs/power-plan-activate",
 	}
 });
 
-app.MapGet("/api/admin/agent-jobs/{jobId:guid}", (HttpContext httpContext, Guid jobId, ClientRegistry registry, AdminAuthService authService) =>
+app.MapGet("/api/admin/agent-jobs/{jobId:guid}", (HttpContext httpContext, Guid jobId, ClientRegistry registry, AdminAuthService authService, JwtTokenService jwtService, UserService userService) =>
 {
-	var authorizationFailure = RequireAdmin(httpContext, authService, out _, readRoles);
+	var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out _, readRoles);
 	if (authorizationFailure is not null)
 	{
 		return authorizationFailure;
@@ -741,9 +820,9 @@ app.MapGet("/api/admin/agent-jobs/{jobId:guid}", (HttpContext httpContext, Guid 
 	}
 });
 
-app.MapDelete("/api/admin/clients/{clientId:guid}", (HttpContext httpContext, Guid clientId, ClientRegistry registry, AdminAuthService authService) =>
+app.MapDelete("/api/admin/clients/{clientId:guid}", (HttpContext httpContext, Guid clientId, ClientRegistry registry, AdminAuthService authService, JwtTokenService jwtService, UserService userService) =>
 {
-	var authorizationFailure = RequireAdmin(httpContext, authService, out var admin, manageRoles);
+	var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out var admin, manageRoles);
 	if (authorizationFailure is not null)
 	{
 		return authorizationFailure;
@@ -760,9 +839,9 @@ app.MapDelete("/api/admin/clients/{clientId:guid}", (HttpContext httpContext, Gu
 	}
 });
 
-app.MapPut("/api/admin/clients/{clientId:guid}/metadata", (HttpContext httpContext, Guid clientId, UpdateAdminClientMetadataRequest request, ClientRegistry registry, AdminAuthService authService) =>
+app.MapPut("/api/admin/clients/{clientId:guid}/metadata", (HttpContext httpContext, Guid clientId, UpdateAdminClientMetadataRequest request, ClientRegistry registry, AdminAuthService authService, JwtTokenService jwtService, UserService userService) =>
 {
-	var authorizationFailure = RequireAdmin(httpContext, authService, out var admin, manageRoles);
+	var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out var admin, manageRoles);
 	if (authorizationFailure is not null)
 	{
 		return authorizationFailure;
@@ -779,21 +858,79 @@ app.MapPut("/api/admin/clients/{clientId:guid}/metadata", (HttpContext httpConte
 	}
 });
 
-static IResult? RequireAdmin(HttpContext httpContext, AdminAuthService authService, out AuthenticatedAdmin admin, params AdminRole[] requiredRoles)
+static IResult? RequireAdmin(HttpContext httpContext, AdminAuthService authService, JwtTokenService? jwtService, UserService? userService, out AuthenticatedAdmin admin, params AdminRole[] requiredRoles)
 {
+    if (TryAuthenticateAdminViaJwt(httpContext, jwtService, userService, out admin, out var jwtError))
+    {
+        if (requiredRoles.Length == 0 || requiredRoles.Any(admin.HasRole))
+        {
+            return null;
+        }
+
+        return Results.Json(
+            new { message = $"Admin '{admin.DisplayName}' besitzt keine der erforderlichen Rollen: {string.Join(", ", requiredRoles)}." },
+            statusCode: StatusCodes.Status403Forbidden);
+    }
+
 	if (!authService.TryAuthenticate(httpContext.Request, out admin, out var errorMessage))
 	{
-		return Results.Json(new { message = errorMessage }, statusCode: StatusCodes.Status401Unauthorized);
+		return Results.Json(new { message = jwtError ?? errorMessage }, statusCode: StatusCodes.Status401Unauthorized);
 	}
 
 	if (!authService.HasAnyRole(admin, requiredRoles))
 	{
 		return Results.Json(
-			new { message = $"Admin '{admin.DisplayName}' is missing one of the required roles: {string.Join(", ", requiredRoles)}." },
+			new { message = $"Admin '{admin.DisplayName}' besitzt keine der erforderlichen Rollen: {string.Join(", ", requiredRoles)}." },
 			statusCode: StatusCodes.Status403Forbidden);
 	}
 
 	return null;
+}
+
+static bool TryAuthenticateAdminViaJwt(HttpContext httpContext, JwtTokenService? jwtService, UserService? userService, out AuthenticatedAdmin admin, out string? error)
+{
+    admin = AuthenticatedAdmin.Empty;
+    error = null;
+
+    if (jwtService is null || userService is null)
+    {
+        return false;
+    }
+
+    if (!httpContext.Request.Headers.TryGetValue("Authorization", out var authHeader))
+    {
+        return false;
+    }
+
+    var bearerToken = authHeader.ToString();
+    if (!bearerToken.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+    {
+        error = "Ungültiger Authorization-Header. Erwartet wird 'Bearer <token>'.";
+        return false;
+    }
+
+    var token = bearerToken["Bearer ".Length..].Trim();
+    var (isValid, userId, jwtError) = jwtService.ValidateAccessToken(token);
+    if (!isValid || userId is null)
+    {
+        error = jwtError ?? "Das Zugriffstoken ist ungültig.";
+        return false;
+    }
+
+    var user = userService.GetUserById(userId.Value);
+    if (user is null || !user.IsActive)
+    {
+        error = "Benutzer wurde nicht gefunden oder ist deaktiviert.";
+        return false;
+    }
+
+    var roles = user.Roles
+        .Select(static role => Enum.TryParse<AdminRole>(role, ignoreCase: true, out var parsedRole) ? parsedRole : AdminRole.Auditor)
+        .Distinct()
+        .ToArray();
+
+    admin = new AuthenticatedAdmin(user.DisplayName, roles, user.TotpSecret ?? string.Empty);
+    return true;
 }
 
 static (bool IsValid, Guid? UserId, string? Error) ValidateAuthHeader(HttpContext httpContext, JwtTokenService jwtService)

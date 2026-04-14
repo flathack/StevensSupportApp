@@ -1,0 +1,194 @@
+@page
+@model StevensSupportHelper.AdminWeb.Pages.UsersModel
+@{
+    ViewData["Title"] = "Benutzerverwaltung";
+    ViewData["Subtitle"] = "Benutzer anlegen, Rechte verwalten und Passwörter pflegen";
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+{
+    <div class="alert @(Model.IsError ? "alert-danger" : "alert-success") mb-4">@Model.StatusMessage</div>
+}
+
+<div class="cards-grid two-col mb-4">
+    <section class="surface-card">
+        <div class="surface-card-header">
+            <div>
+                <div class="eyebrow">Aktive Sitzung</div>
+                <h2 class="section-title">Angemeldeter Benutzer</h2>
+            </div>
+        </div>
+        <div class="surface-card-body">
+            <dl class="detail-list">
+                <dt>Anzeigename</dt>
+                <dd>@Model.DisplayName</dd>
+                <dt>Benutzer-ID</dt>
+                <dd>@Model.UserId</dd>
+                <dt>Rollen</dt>
+                <dd>
+                    @if (Model.Roles.Count == 0)
+                    {
+                        <span class="text-muted">Keine Rollen gefunden.</span>
+                    }
+                    else
+                    {
+                        foreach (var role in Model.Roles)
+                        {
+                            <span class="status-badge-shell online me-2">@role</span>
+                        }
+                    }
+                </dd>
+            </dl>
+        </div>
+    </section>
+
+    <section class="surface-card">
+        <div class="surface-card-header">
+            <div>
+                <div class="eyebrow">Passwort</div>
+                <h2 class="section-title">Eigenes Passwort ändern</h2>
+            </div>
+        </div>
+        <div class="surface-card-body">
+            <form method="post" asp-page-handler="ChangeOwnPassword" class="stack-form">
+                <div>
+                    <label class="form-label" asp-for="CurrentPassword">Aktuelles Passwort</label>
+                    <input class="form-control shell-input" asp-for="CurrentPassword" type="password" required />
+                </div>
+                <div>
+                    <label class="form-label" asp-for="ChangedPassword">Neues Passwort</label>
+                    <input class="form-control shell-input" asp-for="ChangedPassword" type="password" required />
+                </div>
+                <div>
+                    <label class="form-label" asp-for="ConfirmedPassword">Neues Passwort bestätigen</label>
+                    <input class="form-control shell-input" asp-for="ConfirmedPassword" type="password" required />
+                </div>
+                <button type="submit" class="shell-btn">Passwort ändern</button>
+            </form>
+        </div>
+    </section>
+</div>
+
+<div class="cards-grid two-col mb-4">
+    <section class="surface-card">
+        <div class="surface-card-header">
+            <div>
+                <div class="eyebrow">Neuer Benutzer</div>
+                <h2 class="section-title">Benutzer anlegen</h2>
+                <p class="section-subtitle">Neue Operatoren oder Administratoren direkt im Web-Admin anlegen.</p>
+            </div>
+        </div>
+        <div class="surface-card-body">
+            <form method="post" asp-page-handler="CreateUser" class="stack-form">
+                <div>
+                    <label class="form-label" asp-for="NewUsername">Benutzername</label>
+                    <input class="form-control shell-input" asp-for="NewUsername" required />
+                </div>
+                <div>
+                    <label class="form-label" asp-for="NewDisplayName">Anzeigename</label>
+                    <input class="form-control shell-input" asp-for="NewDisplayName" />
+                </div>
+                <div>
+                    <label class="form-label" asp-for="NewPassword">Startpasswort</label>
+                    <input class="form-control shell-input" asp-for="NewPassword" type="password" required />
+                </div>
+                <div>
+                    <div class="form-label">Rechte</div>
+                    <div class="role-grid">
+                        @foreach (var role in Model.RoleOptions)
+                        {
+                            <label class="role-option">
+                                <input type="checkbox" name="NewUserRoles" value="@role" checked="@(Model.NewUserRoles.Contains(role) ? "checked" : null)" />
+                                <span>@role</span>
+                            </label>
+                        }
+                    </div>
+                </div>
+                <button type="submit" class="shell-btn">Benutzer anlegen</button>
+            </form>
+        </div>
+    </section>
+
+    <section class="surface-card">
+        <div class="surface-card-header">
+            <div>
+                <div class="eyebrow">Hinweise</div>
+                <h2 class="section-title">Rechte und Zugriff</h2>
+            </div>
+        </div>
+        <div class="surface-card-body">
+            <div class="shell-panel-muted">
+                Administratoren dürfen Benutzer verwalten und kritische Aktionen ausführen. Operatoren steuern den Supportbetrieb. Auditoren sehen Daten ein, greifen aber nicht aktiv ein.
+            </div>
+        </div>
+    </section>
+</div>
+
+<section class="surface-card">
+    <div class="surface-card-header">
+        <div>
+            <div class="eyebrow">Benutzerliste</div>
+            <h2 class="section-title">Bestehende Konten</h2>
+            <p class="section-subtitle">Rollen ändern, Passwort zurücksetzen oder Konten entfernen.</p>
+        </div>
+    </div>
+    <div class="surface-card-body">
+        @if (Model.Users.Count == 0)
+        {
+            <div class="empty-state">Es sind noch keine Benutzer vorhanden.</div>
+        }
+        else
+        {
+            <div class="user-management-grid">
+                @foreach (var user in Model.Users)
+                {
+                    <article class="surface-subcard">
+                        <div class="user-card-header">
+                            <div>
+                                <h3 class="mini-title">@user.DisplayName</h3>
+                                <div class="text-muted">@user.Username</div>
+                            </div>
+                            <span class="status-badge-shell @(user.Roles.Contains("Administrator") ? "online" : "offline")">
+                                @(user.Roles.Contains("Administrator") ? "Administrator" : "Aktiv")
+                            </span>
+                        </div>
+
+                        <div class="detail-pairs mb-3">
+                            <div><strong>ID:</strong> @user.Id</div>
+                            <div><strong>Letzte Anmeldung:</strong> @(user.LastLoginAtUtc?.ToLocalTime().ToString("g") ?? "Noch nie")</div>
+                        </div>
+
+                        <form method="post" asp-page-handler="UpdateRoles" class="stack-form compact-form mb-3">
+                            <input type="hidden" name="userId" value="@user.Id" />
+                            <div class="form-label mb-1">Rollen</div>
+                            <div class="role-grid">
+                                @foreach (var role in Model.RoleOptions)
+                                {
+                                    <label class="role-option">
+                                        <input type="checkbox" name="roles" value="@role" checked="@(user.Roles.Contains(role) ? "checked" : null)" />
+                                        <span>@role</span>
+                                    </label>
+                                }
+                            </div>
+                            <button type="submit" class="shell-btn-outline">Rechte speichern</button>
+                        </form>
+
+                        <form method="post" asp-page-handler="ResetPassword" class="stack-form compact-form mb-3">
+                            <input type="hidden" name="userId" value="@user.Id" />
+                            <div>
+                                <label class="form-label">Neues Passwort setzen</label>
+                                <input class="form-control shell-input" type="password" name="newPassword" required />
+                            </div>
+                            <button type="submit" class="shell-btn-outline">Passwort zurücksetzen</button>
+                        </form>
+
+                        <form method="post" asp-page-handler="DeleteUser" onsubmit="return confirm('Benutzer wirklich löschen?');">
+                            <input type="hidden" name="userId" value="@user.Id" />
+                            <button type="submit" class="shell-btn-warning">Benutzer löschen</button>
+                        </form>
+                    </article>
+                }
+            </div>
+        }
+    </div>
+</section>

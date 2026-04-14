@@ -7,14 +7,17 @@ namespace StevensSupportHelper.AdminWeb.Pages;
 public class DashboardModel : PageModel
 {
     private readonly ApiClient _apiClient;
+    private readonly DemoClientDataService _demoClientDataService;
 
-    public DashboardModel(ApiClient apiClient)
+    public DashboardModel(ApiClient apiClient, DemoClientDataService demoClientDataService)
     {
         _apiClient = apiClient;
+        _demoClientDataService = demoClientDataService;
     }
 
     public string DisplayName { get; set; } = string.Empty;
     public List<ClientSummaryResponse> Clients { get; set; } = [];
+    public bool IsUsingDemoClients { get; private set; }
     public int OnlineCount => Clients.Count(c => c.IsOnline);
     public int OfflineCount => Clients.Count(c => !c.IsOnline);
 
@@ -27,12 +30,19 @@ public class DashboardModel : PageModel
         }
 
         _apiClient.SetAccessToken(token);
-        _apiClient.SetAccessToken(token);
-        
         DisplayName = HttpContext.Session.GetString("DisplayName") ?? "Admin";
-        
+
         var clients = await _apiClient.GetClientsAsync();
-        Clients = clients ?? [];
+        if (clients is { Count: > 0 })
+        {
+            Clients = clients;
+            IsUsingDemoClients = false;
+        }
+        else
+        {
+            Clients = _demoClientDataService.GetClients().ToList();
+            IsUsingDemoClients = true;
+        }
 
         return Page();
     }

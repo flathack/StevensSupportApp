@@ -1,156 +1,406 @@
 @page "/clients/details"
 @model StevensSupportHelper.AdminWeb.Pages.Clients.DetailsModel
 @{
-    ViewData["Title"] = "Client Details";
+    ViewData["Title"] = "Clientverwaltung";
+    ViewData["Subtitle"] = "Funktionsleiste, Arbeits-Tabs und Supportsteuerung für einen einzelnen Client";
 }
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Client Details - StevensSupportHelper Admin</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-</head>
-<body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="/Dashboard">StevensSupportHelper</a>
-            <a class="btn btn-outline-light btn-sm" href="/Dashboard">Back to Dashboard</a>
+@section HeaderActions {
+    <a class="shell-btn-outline" asp-page="/Dashboard">Zurück zum Dashboard</a>
+}
+
+@if (Model.Client is null)
+{
+    <section class="surface-card">
+        <div class="surface-card-body">
+            <div class="empty-state">Client wurde nicht gefunden.</div>
         </div>
-    </nav>
+    </section>
+    return;
+}
 
-    <main class="container mt-4">
-        @if (Model.Client is null)
-        {
-            <div class="alert alert-warning">Client not found.</div>
-            return;
-        }
+@if (!string.IsNullOrEmpty(Model.ActionMessage))
+{
+    <div class="alert @(Model.IsActionError ? "alert-danger" : "alert-success") mb-4">@Model.ActionMessage</div>
+}
 
-        <!-- Action Messages -->
-        @if (!string.IsNullOrEmpty(Model.ActionMessage))
-        {
-            <div class="alert @(Model.IsActionError ? "alert-danger" : "alert-success")">
-                @Model.ActionMessage
+@if (Model.IsUsingDemoClient)
+{
+    <div class="alert alert-info mb-4">
+        Demo-Client-Modus ist aktiv, weil aktuell keine echten Clients verbunden sind.
+    </div>
+}
+
+<section class="surface-card mb-4">
+    <div class="surface-card-header">
+        <div>
+            <div class="eyebrow">Client</div>
+            <h2 class="section-title">@Model.Client.DeviceName</h2>
+            <p class="section-subtitle">@Model.Client.MachineName</p>
+        </div>
+        <span class="status-badge-shell @(Model.Client.IsOnline ? "online" : "offline")">
+            @(Model.Client.IsOnline ? "Online" : "Offline")
+        </span>
+    </div>
+    <div class="surface-card-body">
+        <div class="detail-summary-grid">
+            <div class="surface-subcard compact">
+                <div class="mini-label">Angemeldeter Benutzer</div>
+                <div class="mini-value">@Model.Client.CurrentUser</div>
             </div>
-        }
+            <div class="surface-subcard compact">
+                <div class="mini-label">Agent-Version</div>
+                <div class="mini-value">@Model.Client.AgentVersion</div>
+            </div>
+            <div class="surface-subcard compact">
+                <div class="mini-label">Zuletzt gesehen</div>
+                <div class="mini-value">@Model.Client.LastSeenAtUtc.ToLocalTime().ToString("g")</div>
+            </div>
+            <div class="surface-subcard compact">
+                <div class="mini-label">Betriebssystem</div>
+                <div class="mini-value">@(string.IsNullOrWhiteSpace(Model.Client.OsDescription) ? "-" : Model.Client.OsDescription)</div>
+            </div>
+        </div>
+    </div>
+</section>
 
-        <!-- Client Info -->
-        <div class="row mb-4">
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">@Model.Client.DeviceName</h5>
-                    </div>
-                    <div class="card-body">
-                        <dl class="row">
-                            <dt class="col-sm-4">Machine</dt>
-                            <dd class="col-sm-8">@Model.Client.MachineName</dd>
+<section class="surface-card mb-4">
+    <div class="surface-card-header">
+        <div>
+            <div class="eyebrow">Funktionen</div>
+            <h2 class="section-title">Arbeitsbereich öffnen</h2>
+            <p class="section-subtitle">Wie im alten Admin-Client lassen sich mehrere Bereiche parallel als Tabs öffnen.</p>
+        </div>
+    </div>
+    <div class="surface-card-body">
+        <div class="tool-launcher-grid">
+            @foreach (var tool in Model.ToolDefinitions)
+            {
+                <button type="button"
+                        class="tool-launcher-btn"
+                        data-client-tool="@tool.Key"
+                        data-client-tool-label="@tool.Label">
+                    <strong>@tool.Label</strong>
+                    <span>@tool.Description</span>
+                </button>
+            }
+        </div>
+    </div>
+</section>
 
-                            <dt class="col-sm-4">User</dt>
-                            <dd class="col-sm-8">@Model.Client.CurrentUser</dd>
+<section class="surface-card client-workspace"
+         data-initial-open-tabs="@Model.OpenTabsState"
+         data-initial-active-tab="@Model.ActiveTabKey">
+    <div class="surface-card-header">
+        <div>
+            <div class="eyebrow">Arbeitsbereich</div>
+            <h2 class="section-title">Offene Tabs</h2>
+        </div>
+    </div>
+    <div class="surface-card-body">
+        <input type="hidden" id="clientOpenTabsState" value="@Model.OpenTabsState" />
+        <input type="hidden" id="clientActiveTabState" value="@Model.ActiveTabKey" />
 
-                            <dt class="col-sm-4">Status</dt>
-                            <dd class="col-sm-8">
-                                @if (Model.Client.IsOnline)
-                                {
-                                    <span class="badge bg-success">Online</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-secondary">Offline</span>
-                                }
-                            </dd>
+        <div class="workspace-tabs" id="clientWorkspaceTabs"></div>
 
-                            <dt class="col-sm-4">Agent Version</dt>
-                            <dd class="col-sm-8">@Model.Client.AgentVersion</dd>
-
-                            <dt class="col-sm-4">OS</dt>
-                            <dd class="col-sm-8">@Model.Client.OsDescription</dd>
-
-                            <dt class="col-sm-4">Last Seen</dt>
-                            <dd class="col-sm-8">@Model.Client.LastSeenAtUtc.ToString("g")</dd>
-
-                            <dt class="col-sm-4">Notes</dt>
-                            <dd class="col-sm-8">@(string.IsNullOrEmpty(Model.Client.Notes) ? "-" : Model.Client.Notes)</dd>
+        <div class="workspace-panels">
+            <section class="workspace-panel" data-workspace-panel="overview" data-tab-label="Übersicht">
+                <div class="cards-grid two-col">
+                    <div class="surface-subcard">
+                        <h3 class="mini-title">Geräteinformationen</h3>
+                        <dl class="detail-list">
+                            <dt>Hostname</dt>
+                            <dd>@Model.Client.MachineName</dd>
+                            <dt>Client-ID</dt>
+                            <dd>@Model.Client.ClientId</dd>
+                            <dt>Tailscale</dt>
+                            <dd>@(Model.Client.TailscaleConnected ? string.Join(", ", Model.Client.TailscaleIpAddresses) : "Nicht verbunden")</dd>
+                            <dt>Notizen</dt>
+                            <dd>@(string.IsNullOrWhiteSpace(Model.Client.Notes) ? "-" : Model.Client.Notes)</dd>
                         </dl>
                     </div>
-                </div>
-            </div>
-
-            <div class="col-md-6">
-                <!-- Active Session -->
-                @if (Model.Client.ActiveSession is not null)
-                {
-                    <div class="card mb-4">
-                        <div class="card-header bg-warning">
-                            <h5 class="mb-0">Active Support Session</h5>
-                        </div>
-                        <div class="card-body">
-                            <p><strong>Admin:</strong> @Model.Client.ActiveSession.AdminDisplayName</p>
-                            <p><strong>Channel:</strong> @Model.Client.ActiveSession.Channel</p>
-                            <p><strong>Started:</strong> @Model.Client.ActiveSession.StartedAtUtc.ToString("g")</p>
-                            <form method="post" asp-page-handler="EndSession">
-                                <button type="submit" class="btn btn-danger">End Session</button>
-                            </form>
-                        </div>
-                    </div>
-                }
-
-                <!-- Create Support Request -->
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">Request Support</h5>
-                    </div>
-                    <div class="card-body">
-                        <form method="post" asp-page-handler="Support">
-                            <div class="mb-3">
-                                <label class="form-label">Channel</label>
-                                <select class="form-select" asp-for="PreferredChannel">
-                                    <option value="RustDesk">RustDesk</option>
-                                    <option value="RDP">RDP</option>
-                                    <option value="WinRM">WinRM</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Reason</label>
-                                <textarea class="form-control" asp-for="SupportReason" rows="3" required></textarea>
-                            </div>
-                            <button type="submit" class="btn btn-primary">Request Support</button>
-                        </form>
-                    </div>
-                </div>
-
-                <!-- Remote Actions -->
-                <div class="card mt-4">
-                    <div class="card-header">
-                        <h5 class="mb-0">Remote Actions</h5>
-                    </div>
-                    <div class="card-body">
-                        @if (Model.RemoteActions.Count == 0)
+                    <div class="surface-subcard">
+                        <h3 class="mini-title">Aktive Sitzung</h3>
+                        @if (Model.Client.ActiveSession is null)
                         {
-                            <p class="text-muted">No remote actions available.</p>
+                            <div class="shell-panel-muted">Zurzeit ist keine aktive Support-Sitzung vorhanden.</div>
                         }
                         else
                         {
-                            <form method="post" asp-page-handler="ExecuteScript">
-                                <div class="mb-3">
-                                    <label class="form-label">Select Script</label>
-                                    <select class="form-select" asp-for="SelectedScript">
-                                        <option value="">-- Select a script --</option>
-                                        @foreach (var action in Model.RemoteActions)
-                                        {
-                                            <option value="@action.Name">@action.Name - @action.Description</option>
-                                        }
-                                    </select>
-                                </div>
-                                <button type="submit" class="btn btn-warning">Execute Script</button>
-                            </form>
+                            <dl class="detail-list">
+                                <dt>Administrator</dt>
+                                <dd>@Model.Client.ActiveSession.AdminDisplayName</dd>
+                                <dt>Kanal</dt>
+                                <dd>@Model.Client.ActiveSession.Channel</dd>
+                                <dt>Beginn</dt>
+                                <dd>@Model.Client.ActiveSession.StartedAtUtc.ToLocalTime().ToString("g")</dd>
+                            </dl>
                         }
                     </div>
                 </div>
-            </div>
+            </section>
+
+            <section class="workspace-panel" data-workspace-panel="support" data-tab-label="Support">
+                <div class="surface-subcard">
+                    <h3 class="mini-title">Support anfordern</h3>
+                    <form method="post" asp-page-handler="Support" class="stack-form">
+                        <input type="hidden" asp-for="ClientId" />
+                        <input type="hidden" asp-for="OpenTabsState" class="tab-state-input" />
+                        <input type="hidden" asp-for="ActiveTabKey" class="tab-active-input" />
+                        <div>
+                            <label class="form-label">Kanal</label>
+                            <select class="form-select shell-select" asp-for="PreferredChannel">
+                                <option value="RustDesk">RustDesk</option>
+                                <option value="RDP">RDP</option>
+                                <option value="WinRM">WinRM</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label">Grund</label>
+                            <textarea class="form-control shell-textarea" asp-for="SupportReason" rows="4" required></textarea>
+                        </div>
+                        <button type="submit" class="shell-btn">Support-Anfrage senden</button>
+                    </form>
+                </div>
+            </section>
+
+            <section class="workspace-panel" data-workspace-panel="connect" data-tab-label="Verbinden">
+                <div class="surface-subcard">
+                    <h3 class="mini-title">Sitzung starten</h3>
+                    <p class="section-subtitle">Hier kann später die direkte Sitzungslogik für WinRM, Konsolen- oder Remote-Zugriffe eingebunden werden.</p>
+                    <form method="post" asp-page-handler="QueuePlaceholder" class="action-row">
+                        <input type="hidden" asp-for="ClientId" />
+                        <input type="hidden" asp-for="OpenTabsState" class="tab-state-input" />
+                        <input type="hidden" asp-for="ActiveTabKey" class="tab-active-input" />
+                        <input type="hidden" name="operation" value="Verbindung vorbereiten" />
+                        <input type="hidden" name="target" value="connect" />
+                        <button type="submit" class="shell-btn">Verbindung öffnen</button>
+                    </form>
+                </div>
+            </section>
+
+            <section class="workspace-panel" data-workspace-panel="rdp" data-tab-label="RDP">
+                <div class="surface-subcard">
+                    <h3 class="mini-title">RDP</h3>
+                    <p class="shell-panel-muted">Der Platzhalter für RDP kann später mit gespeicherten Zugangsdaten und Startparametern verbunden werden.</p>
+                </div>
+            </section>
+
+            <section class="workspace-panel" data-workspace-panel="rustdesk" data-tab-label="RustDesk">
+                <div class="surface-subcard">
+                    <h3 class="mini-title">RustDesk</h3>
+                    <dl class="detail-list">
+                        <dt>RustDesk-ID</dt>
+                        <dd>@(string.IsNullOrWhiteSpace(Model.Client.RustDeskId) ? "-" : Model.Client.RustDeskId)</dd>
+                        <dt>Status</dt>
+                        <dd>@(Model.Client.IsOnline ? "Bereit für Fernwartung" : "Client ist offline")</dd>
+                    </dl>
+                </div>
+            </section>
+
+            <section class="workspace-panel" data-workspace-panel="ps-console" data-tab-label="PS-Konsole">
+                <div class="surface-subcard">
+                    <h3 class="mini-title">PowerShell / Remote Actions</h3>
+                    @if (Model.RemoteActions.Count == 0)
+                    {
+                        <div class="shell-panel-muted">Keine Remote-Aktionen verfügbar.</div>
+                    }
+                    else
+                    {
+                        <form method="post" asp-page-handler="ExecuteScript" class="stack-form">
+                            <input type="hidden" asp-for="ClientId" />
+                            <input type="hidden" asp-for="OpenTabsState" class="tab-state-input" />
+                            <input type="hidden" asp-for="ActiveTabKey" class="tab-active-input" />
+                            <div>
+                                <label class="form-label">Skript auswählen</label>
+                                <select class="form-select shell-select" asp-for="SelectedScript">
+                                    <option value="">Bitte wählen</option>
+                                    @foreach (var action in Model.RemoteActions)
+                                    {
+                                        <option value="@action.Name">@action.Name - @action.Description</option>
+                                    }
+                                </select>
+                            </div>
+                            <button type="submit" class="shell-btn-warning">Skript ausführen</button>
+                        </form>
+                    }
+                </div>
+            </section>
+
+            <section class="workspace-panel" data-workspace-panel="dashboard" data-tab-label="Dashboard">
+                <div class="surface-subcard">
+                    <h3 class="mini-title">Dashboard-Ansicht</h3>
+                    <div class="detail-summary-grid">
+                        <div class="surface-subcard compact">
+                            <div class="mini-label">Zustimmung erforderlich</div>
+                            <div class="mini-value">@(Model.Client.ConsentRequired ? "Ja" : "Nein")</div>
+                        </div>
+                        <div class="surface-subcard compact">
+                            <div class="mini-label">Interaktiver Benutzer</div>
+                            <div class="mini-value">@(Model.Client.HasInteractiveUser ? "Ja" : "Nein")</div>
+                        </div>
+                        <div class="surface-subcard compact">
+                            <div class="mini-label">Am Sperrbildschirm</div>
+                            <div class="mini-value">@(Model.Client.IsAtLogonScreen ? "Ja" : "Nein")</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="workspace-panel" data-workspace-panel="files" data-tab-label="Dateien">
+                <div class="surface-subcard">
+                    <h3 class="mini-title">Dateien</h3>
+                    <p class="shell-panel-muted">Dieser Bereich ist für Uploads, Downloads und spätere Dateibrowser-Funktionen vorbereitet.</p>
+                </div>
+            </section>
+
+            <section class="workspace-panel" data-workspace-panel="tasks" data-tab-label="Aufgaben">
+                <div class="surface-subcard">
+                    <h3 class="mini-title">Aufgaben</h3>
+                    <p class="shell-panel-muted">Hier können später laufende Prozesse, geplante Aufgaben oder Agent-Jobs eingeblendet werden.</p>
+                </div>
+            </section>
+
+            <section class="workspace-panel" data-workspace-panel="services" data-tab-label="Dienste">
+                <div class="surface-subcard">
+                    <h3 class="mini-title">Dienste</h3>
+                    <form method="post" asp-page-handler="QueuePlaceholder" class="stack-form">
+                        <input type="hidden" asp-for="ClientId" />
+                        <input type="hidden" asp-for="OpenTabsState" class="tab-state-input" />
+                        <input type="hidden" asp-for="ActiveTabKey" class="tab-active-input" />
+                        <div>
+                            <label class="form-label" asp-for="ServiceName">Dienstname</label>
+                            <input class="form-control shell-input" asp-for="ServiceName" />
+                        </div>
+                        <input type="hidden" name="operation" value="Dienststeuerung vorbereiten" />
+                        <input type="hidden" name="target" value="services" />
+                        <button type="submit" class="shell-btn-outline">Dienstaktion öffnen</button>
+                    </form>
+                </div>
+            </section>
+
+            <section class="workspace-panel" data-workspace-panel="software" data-tab-label="Software">
+                <div class="surface-subcard">
+                    <h3 class="mini-title">Software</h3>
+                    <p class="shell-panel-muted">Inventar, Versionen und geplante Updates können hier tabellarisch dargestellt werden.</p>
+                </div>
+            </section>
+
+            <section class="workspace-panel" data-workspace-panel="registry" data-tab-label="Registry">
+                <div class="surface-subcard">
+                    <h3 class="mini-title">Registry-Snapshot</h3>
+                    <form method="post" asp-page-handler="QueuePlaceholder" class="stack-form">
+                        <input type="hidden" asp-for="ClientId" />
+                        <input type="hidden" asp-for="OpenTabsState" class="tab-state-input" />
+                        <input type="hidden" asp-for="ActiveTabKey" class="tab-active-input" />
+                        <div>
+                            <label class="form-label" asp-for="RegistryPath">Pfad</label>
+                            <input class="form-control shell-input" asp-for="RegistryPath" />
+                        </div>
+                        <input type="hidden" name="operation" value="Registry-Snapshot vorbereiten" />
+                        <input type="hidden" name="target" value="registry" />
+                        <button type="submit" class="shell-btn-outline">Snapshot anfordern</button>
+                    </form>
+                </div>
+            </section>
+
+            <section class="workspace-panel" data-workspace-panel="power" data-tab-label="Energie">
+                <div class="surface-subcard">
+                    <h3 class="mini-title">Energieverwaltung</h3>
+                    <form method="post" asp-page-handler="QueuePlaceholder" class="stack-form">
+                        <input type="hidden" asp-for="ClientId" />
+                        <input type="hidden" asp-for="OpenTabsState" class="tab-state-input" />
+                        <input type="hidden" asp-for="ActiveTabKey" class="tab-active-input" />
+                        <div>
+                            <label class="form-label" asp-for="PowerPlanGuid">Energieprofil-GUID</label>
+                            <input class="form-control shell-input" asp-for="PowerPlanGuid" />
+                        </div>
+                        <input type="hidden" name="operation" value="Energieprofil vorbereiten" />
+                        <input type="hidden" name="target" value="power" />
+                        <button type="submit" class="shell-btn-outline">Energieprofil öffnen</button>
+                    </form>
+                </div>
+            </section>
+
+            <section class="workspace-panel" data-workspace-panel="windows-updates" data-tab-label="Windows-Updates">
+                <div class="surface-subcard">
+                    <h3 class="mini-title">Windows-Updates</h3>
+                    <div class="action-row">
+                        <form method="post" asp-page-handler="QueuePlaceholder">
+                            <input type="hidden" asp-for="ClientId" />
+                            <input type="hidden" asp-for="OpenTabsState" class="tab-state-input" />
+                            <input type="hidden" asp-for="ActiveTabKey" class="tab-active-input" />
+                            <input type="hidden" name="operation" value="Update-Scan vorbereiten" />
+                            <input type="hidden" name="target" value="windows-updates" />
+                            <button type="submit" class="shell-btn-outline">Nach Updates suchen</button>
+                        </form>
+                        <form method="post" asp-page-handler="QueuePlaceholder">
+                            <input type="hidden" asp-for="ClientId" />
+                            <input type="hidden" asp-for="OpenTabsState" class="tab-state-input" />
+                            <input type="hidden" asp-for="ActiveTabKey" class="tab-active-input" />
+                            <input type="hidden" name="operation" value="Update-Installation vorbereiten" />
+                            <input type="hidden" name="target" value="windows-updates" />
+                            <button type="submit" class="shell-btn">Updates installieren</button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+            <section class="workspace-panel" data-workspace-panel="chat" data-tab-label="Chat">
+                <div class="surface-subcard">
+                    <h3 class="mini-title">Chat</h3>
+                    <p class="shell-panel-muted">Der Chat-Bereich ist vorbereitet. Nachrichtenverläufe können hier als fortlaufende Unterhaltung angezeigt werden.</p>
+                </div>
+            </section>
+
+            <section class="workspace-panel" data-workspace-panel="remote-actions" data-tab-label="Remote Actions">
+                <div class="surface-subcard">
+                    <h3 class="mini-title">Remote Actions</h3>
+                    @if (Model.RemoteActions.Count == 0)
+                    {
+                        <div class="shell-panel-muted">Keine Aktionen vorhanden.</div>
+                    }
+                    else
+                    {
+                        <div class="remote-action-list">
+                            @foreach (var action in Model.RemoteActions)
+                            {
+                                <div class="surface-subcard compact">
+                                    <div class="mini-title">@action.Name</div>
+                                    <div class="section-subtitle">@action.Description</div>
+                                    <div class="text-muted">Erhöhte Rechte: @(action.RequiresElevation ? "Ja" : "Nein")</div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </section>
+
+            <section class="workspace-panel" data-workspace-panel="screenshot" data-tab-label="Screenshot">
+                <div class="surface-subcard">
+                    <h3 class="mini-title">Screenshot</h3>
+                    <p class="shell-panel-muted">Dieser Tab ist für künftige Bildschirmaufnahmen vorbereitet.</p>
+                </div>
+            </section>
+
+            <section class="workspace-panel" data-workspace-panel="edit-client" data-tab-label="Client bearbeiten">
+                <div class="surface-subcard">
+                    <h3 class="mini-title">Client bearbeiten</h3>
+                    <p class="shell-panel-muted">Metadaten, RustDesk-Informationen und Notizen können hier später direkt bearbeitet werden.</p>
+                </div>
+            </section>
+
+            <section class="workspace-panel" data-workspace-panel="end-session" data-tab-label="Sitzung beenden">
+                <div class="surface-subcard">
+                    <h3 class="mini-title">Aktive Sitzung beenden</h3>
+                    <form method="post" asp-page-handler="EndSession">
+                        <input type="hidden" asp-for="ClientId" />
+                        <input type="hidden" asp-for="OpenTabsState" class="tab-state-input" />
+                        <input type="hidden" asp-for="ActiveTabKey" class="tab-active-input" />
+                        <button type="submit" class="shell-btn-warning">Sitzung jetzt beenden</button>
+                    </form>
+                </div>
+            </section>
         </div>
-    </main>
-</body>
-</html>
+    </div>
+</section>

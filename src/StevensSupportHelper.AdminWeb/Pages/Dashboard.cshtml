@@ -2,111 +2,90 @@
 @model StevensSupportHelper.AdminWeb.Pages.DashboardModel
 @{
     ViewData["Title"] = "Dashboard";
+    ViewData["Subtitle"] = "Live-Überblick über Clients, Sitzungen und schnelle Aktionen";
 }
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dashboard - StevensSupportHelper Admin</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-</head>
-<body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="#">StevensSupportHelper</a>
-            <div class="d-flex">
-                <span class="navbar-text me-3">Welcome, @Model.DisplayName</span>
-                <form method="post" asp-page-handler="Logout" class="d-inline">
-                    <button type="submit" class="btn btn-outline-light btn-sm">Logout</button>
-                </form>
-            </div>
-        </div>
-    </nav>
+@section HeaderActions {
+    <a class="shell-btn-outline" asp-page="/Audit">Audit öffnen</a>
+    <a class="shell-btn" asp-page="/Settings">Server-Einstellungen</a>
+}
 
-    <main class="container mt-4">
-        <div class="row mb-4">
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-body">
-                        <h6 class="card-subtitle mb-2 text-muted">Total Clients</h6>
-                        <h2 class="card-title mb-0">@Model.Clients.Count</h2>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-body">
-                        <h6 class="card-subtitle mb-2 text-muted">Online</h6>
-                        <h2 class="card-title mb-0 text-success">@Model.OnlineCount</h2>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-body">
-                        <h6 class="card-subtitle mb-2 text-muted">Offline</h6>
-                        <h2 class="card-title mb-0 text-muted">@Model.OfflineCount</h2>
-                    </div>
-                </div>
-            </div>
-        </div>
+<div class="stats-grid mb-4">
+    <div class="metric-card surface-card">
+        <div class="metric-label">Clients gesamt</div>
+        <div class="metric-value">@Model.Clients.Count</div>
+        <div class="metric-note">Registrierte Geräte im Supportbestand</div>
+    </div>
+    <div class="metric-card surface-card">
+        <div class="metric-label">Online</div>
+        <div class="metric-value text-success">@Model.OnlineCount</div>
+        <div class="metric-note">Bereit für Support oder Remote-Aktionen</div>
+    </div>
+    <div class="metric-card surface-card">
+        <div class="metric-label">Offline</div>
+        <div class="metric-value text-secondary">@Model.OfflineCount</div>
+        <div class="metric-note">Benötigen späteren Follow-up oder Reconnect</div>
+    </div>
+</div>
 
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">Connected Clients</h5>
+<section class="surface-card">
+    <div class="surface-card-header">
+        <div>
+            <div class="eyebrow">Clientübersicht</div>
+            <h2 class="section-title">Verwaltete Clients</h2>
+            <p class="section-subtitle">Gerätestatus, Aktivität und schneller Einstieg in die Verwaltung.</p>
+        </div>
+    </div>
+    <div class="surface-card-body">
+        @if (Model.IsUsingDemoClients)
+        {
+            <div class="alert alert-info">
+                Demo-Clients werden angezeigt, weil aktuell keine echten Clients verbunden sind.
             </div>
-            @if (Model.Clients.Count == 0)
-            {
-                <div class="card-body text-center text-muted">
-                    No clients connected yet.
-                </div>
-            }
-            else
-            {
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead class="table-light">
+        }
+        @if (Model.Clients.Count == 0)
+        {
+            <div class="empty-state">Es wurden noch keine Clients gemeldet. Sobald sich Agenten registrieren, erscheinen sie hier.</div>
+        }
+        else
+        {
+            <div class="shell-table-wrap">
+                <table class="shell-table">
+                    <thead>
+                        <tr>
+                            <th>Gerät</th>
+                            <th>Rechner</th>
+                            <th>Benutzer</th>
+                            <th>Status</th>
+                            <th>Version</th>
+                            <th>Zuletzt gesehen</th>
+                            <th>Schnellaktionen</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var client in Model.Clients.OrderByDescending(c => c.IsOnline).ThenBy(c => c.DeviceName))
+                        {
                             <tr>
-                                <th>Device</th>
-                                <th>Machine</th>
-                                <th>User</th>
-                                <th>Status</th>
-                                <th>Version</th>
-                                <th>Last Seen</th>
-                                <th>Action</th>
+                                <td><strong>@client.DeviceName</strong></td>
+                                <td>@client.MachineName</td>
+                                <td>@client.CurrentUser</td>
+                                <td>
+                                    <span class="status-badge-shell @(client.IsOnline ? "online" : "offline")">
+                                        @(client.IsOnline ? "Online" : "Offline")
+                                    </span>
+                                </td>
+                                <td>@client.AgentVersion</td>
+                                <td>@client.LastSeenAtUtc.ToLocalTime().ToString("g")</td>
+                                <td>
+                                    <div class="action-row">
+                                        <a class="shell-btn-outline" asp-page="/Clients/Details" asp-route-id="@client.ClientId">Öffnen</a>
+                                    </div>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var client in Model.Clients)
-                            {
-                                <tr>
-                                    <td>@client.DeviceName</td>
-                                    <td>@client.MachineName</td>
-                                    <td>@client.CurrentUser</td>
-                                    <td>
-                                        @if (client.IsOnline)
-                                        {
-                                            <span class="badge bg-success">Online</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-secondary">Offline</span>
-                                        }
-                                    </td>
-                                    <td>@client.AgentVersion</td>
-                                    <td>@client.LastSeenAtUtc.ToString("g")</td>
-                                    <td>
-                                        <a href="/clients/details?id=@client.ClientId" class="btn btn-sm btn-outline-primary">Details</a>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
-        </div>
-    </main>
-</body>
-</html>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</section>

@@ -5,6 +5,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorPages();
 builder.Services.AddHttpClient();
 builder.Services.AddSingleton<ApiClient>();
+builder.Services.AddSingleton<DemoClientDataService>();
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {

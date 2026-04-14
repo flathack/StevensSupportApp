@@ -38,14 +38,14 @@ public class LoginModel : PageModel
     {
         if (string.IsNullOrWhiteSpace(Username) || string.IsNullOrWhiteSpace(Password))
         {
-            ErrorMessage = "Please enter username and password.";
+            ErrorMessage = "Bitte Benutzername und Passwort eingeben.";
             return Page();
         }
 
         var response = await _apiClient.LoginAsync(Username, Password);
         if (response is null)
         {
-            ErrorMessage = "Invalid username or password.";
+            ErrorMessage = "Benutzername oder Passwort ist ungültig.";
             return Page();
         }
 

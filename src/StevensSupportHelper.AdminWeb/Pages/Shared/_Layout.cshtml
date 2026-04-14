@@ -1,52 +1,110 @@
-﻿<!DOCTYPE html>
-<html lang="en">
+@using Microsoft.AspNetCore.Http
+@{
+    var path = Context.Request.Path.Value ?? string.Empty;
+    var displayName = Context.Session.GetString("DisplayName") ?? "admin";
+    var title = ViewData["Title"]?.ToString() ?? "Stevens Support";
+    var subtitle = ViewData["Subtitle"]?.ToString() ?? "Zentrale für Fernsupport";
+    bool IsActive(string target) => path.StartsWith(target, StringComparison.OrdinalIgnoreCase);
+}
+<!DOCTYPE html>
+<html lang="de">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - StevensSupportHelper.AdminWeb</title>
+    <title>@title - StevensSupportHelper</title>
     <script type="importmap"></script>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/StevensSupportHelper.AdminWeb.styles.css" asp-append-version="true" />
 </head>
-<body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container">
-                <a class="navbar-brand" asp-area="" asp-page="/Index">StevensSupportHelper.AdminWeb</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-page="/Privacy">Privacy</a>
-                        </li>
-                    </ul>
+<body class="shell-body">
+    <div class="app-shell">
+        <aside class="shell-sidebar" id="appSidebar">
+            <div class="brand-block">
+                <div class="brand-mark">S</div>
+                <div>
+                    <div class="brand-title">stevens support</div>
+                    <div class="brand-subtitle">community edition</div>
                 </div>
             </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - StevensSupportHelper.AdminWeb - <a asp-area="" asp-page="/Privacy">Privacy</a>
+            <nav class="shell-nav">
+                <div class="nav-group-label">Betrieb</div>
+                <a class="nav-link-shell @(IsActive("/Dashboard") ? "active" : null)" asp-page="/Dashboard">
+                    <span class="nav-icon">D</span>
+                    <span>Dashboard</span>
+                </a>
+                <a class="nav-link-shell @(IsActive("/Clients") ? "active" : null)" asp-page="/Dashboard">
+                    <span class="nav-icon">C</span>
+                    <span>Clientverwaltung</span>
+                </a>
+                <a class="nav-link-shell @(IsActive("/Audit") ? "active" : null)" asp-page="/Audit">
+                    <span class="nav-icon">A</span>
+                    <span>Audit-Protokoll</span>
+                </a>
+
+                <div class="nav-group-label">Administration</div>
+                <a class="nav-link-shell @(IsActive("/Users") ? "active" : null)" asp-page="/Users">
+                    <span class="nav-icon">U</span>
+                    <span>Benutzerverwaltung</span>
+                </a>
+                <a class="nav-link-shell @(IsActive("/Settings") ? "active" : null)" asp-page="/Settings">
+                    <span class="nav-icon">S</span>
+                    <span>Einstellungen</span>
+                </a>
+                <a class="nav-link-shell @(IsActive("/Privacy") ? "active" : null)" asp-page="/Privacy">
+                    <span class="nav-icon">P</span>
+                    <span>Sicherheit</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-footer-label">Umgebung</div>
+                <div class="environment-card">
+                    <div class="environment-title">ALPHA-DOCKER</div>
+                    <div class="environment-meta">StevensSupport-Stack</div>
+                </div>
+            </div>
+        </aside>
+
+        <div class="shell-main">
+            <header class="topbar">
+                <div class="topbar-left">
+                    <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Navigation umschalten">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </button>
+                    <div>
+                        <div class="page-title">@title</div>
+                        <div class="page-subtitle">@subtitle</div>
+                    </div>
+                </div>
+
+                <div class="topbar-right">
+                    @if (IsSectionDefined("HeaderActions"))
+                    {
+                        @RenderSection("HeaderActions", required: false)
+                    }
+                    <div class="user-pill">
+                        <span class="user-avatar">@displayName[..1].ToUpperInvariant()</span>
+                        <span>@displayName</span>
+                    </div>
+                    <form method="post" action="/Dashboard?handler=Logout" class="d-inline">
+                        <button type="submit" class="btn shell-ghost-btn">Abmelden</button>
+                    </form>
+                </div>
+            </header>
+
+            <main class="shell-content">
+                @RenderBody()
+            </main>
         </div>
-    </footer>
+    </div>
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
-
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

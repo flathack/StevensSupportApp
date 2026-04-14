@@ -13,10 +13,16 @@ cleanup() {
 
 trap cleanup INT TERM EXIT
 
-dotnet /app/server/StevensSupportHelper.Server.dll --urls http://0.0.0.0:5000 &
+(
+  cd /app/server
+  dotnet StevensSupportHelper.Server.dll --urls http://0.0.0.0:5000
+) &
 SERVER_PID=$!
 
-dotnet /app/adminweb/StevensSupportHelper.AdminWeb.dll --urls "${AdminWeb__Urls:-http://0.0.0.0:5001}" &
+(
+  cd /app/adminweb
+  dotnet StevensSupportHelper.AdminWeb.dll --urls "${AdminWeb__Urls:-http://0.0.0.0:5001}"
+) &
 ADMINWEB_PID=$!
 
 while kill -0 "$SERVER_PID" 2>/dev/null && kill -0 "$ADMINWEB_PID" 2>/dev/null; do

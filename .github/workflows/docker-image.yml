@@ -49,6 +49,24 @@ jobs:
             type=ref,event=tag
             type=sha
 
+      - name: Build smoke-test image
+        run: docker build --tag stevens-support-app:smoke .
+
+      - name: Run smoke test
+        run: |
+          docker run --rm -d --name stevens-support-app-smoke -p 5000:5000 stevens-support-app:smoke
+          for i in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:5000/health > /tmp/health.json; then
+              cat /tmp/health.json
+              docker stop stevens-support-app-smoke
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs stevens-support-app-smoke
+          docker stop stevens-support-app-smoke
+          exit 1
+
       - name: Build and Push
         uses: docker/build-push-action@v6
         with:

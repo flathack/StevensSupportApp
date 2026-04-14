@@ -22,19 +22,23 @@ RUN dotnet publish -c Release -o /app/adminweb
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
-ENV ASPNETCORE_URLS=http://0.0.0.0:5000
 ENV ASPNETCORE_ENVIRONMENT=Production
 ENV DOTNET_EnableDiagnostics=0
 ENV StevensSupportHelperServer__Provider=Sqlite
 ENV StevensSupportHelperServer__DatabasePath=/data/server-state.db
 ENV StevensSupportHelperServer__StateFilePath=/data/server-state.json
+ENV AdminWeb__Urls=http://0.0.0.0:5001
+ENV Api__BaseUrl=http://127.0.0.1:5000
 
 RUN mkdir /data
 VOLUME ["/data"]
 
 COPY --from=server-builder /app/server /app/server
 COPY --from=adminweb-builder /app/adminweb /app/adminweb
+COPY scripts/docker/start-services.sh /app/start-services.sh
+
+RUN chmod +x /app/start-services.sh
 
 EXPOSE 5000 5001
 
-ENTRYPOINT ["dotnet", "/app/server/StevensSupportHelper.Server.dll"]
+ENTRYPOINT ["/app/start-services.sh"]

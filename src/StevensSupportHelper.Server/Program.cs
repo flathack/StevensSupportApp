@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Options;
 using StevensSupportHelper.Server.DTOs;
 using StevensSupportHelper.Server.Options;
 using StevensSupportHelper.Server.Services;
@@ -19,6 +20,7 @@ builder.Services.Configure<AdminAuthOptions>(builder.Configuration.GetSection(Ad
 builder.Services.Configure<RateLimitingOptions>(builder.Configuration.GetSection(RateLimitingOptions.SectionName));
 builder.Services.Configure<ClientRegistrationOptions>(builder.Configuration.GetSection(ClientRegistrationOptions.SectionName));
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
+builder.Services.Configure<BootstrapUserOptions>(builder.Configuration.GetSection(BootstrapUserOptions.SectionName));
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
 	options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
@@ -32,6 +34,8 @@ builder.Services.AddSingleton<UserService>();
 builder.Services.AddSingleton<JwtTokenService>();
 
 var app = builder.Build();
+
+EnsureBootstrapUser(app);
 
 AppDiagnostics.WriteEvent("Server", "Startup", "Server host initialized.");
 app.Lifetime.ApplicationStarted.Register(() => AppDiagnostics.WriteEvent("Server", "Started", "Server application started."));
@@ -851,6 +855,45 @@ static AppliedRateLimit? ResolveAppliedRateLimit(HttpContext httpContext, RateLi
 	return HttpMethods.IsGet(httpContext.Request.Method)
 		? new AppliedRateLimit("admin-read", options.AdminReadPolicy, RequestRateLimitPartitionKind.Admin)
 		: new AppliedRateLimit("admin-write", options.AdminWritePolicy, RequestRateLimitPartitionKind.Admin);
+}
+
+static void EnsureBootstrapUser(WebApplication app)
+{
+    using var scope = app.Services.CreateScope();
+    var options = scope.ServiceProvider
+        .GetRequiredService<IOptions<BootstrapUserOptions>>()
+        .Value;
+
+    if (!options.Enabled
+        || string.IsNullOrWhiteSpace(options.Username)
+        || string.IsNullOrWhiteSpace(options.Password))
+    {
+        return;
+    }
+
+    var userService = scope.ServiceProvider.GetRequiredService<UserService>();
+    if (userService.GetUserByUsername(options.Username) is not null)
+    {
+        return;
+    }
+
+    var roles = options.Roles.Count > 0
+        ? options.Roles
+        : ["Administrator", "Operator", "Auditor"];
+
+    var displayName = string.IsNullOrWhiteSpace(options.DisplayName)
+        ? options.Username
+        : options.DisplayName;
+
+    var (_, error) = userService.CreateUser(options.Username, options.Password, displayName, roles);
+    if (!string.IsNullOrWhiteSpace(error))
+    {
+        AppDiagnostics.WriteEvent("Server", "BootstrapUserFailed", error);
+    }
+    else
+    {
+        AppDiagnostics.WriteEvent("Server", "BootstrapUserCreated", $"Bootstrap user '{options.Username}' created.");
+    }
 }
 
 public partial class Program

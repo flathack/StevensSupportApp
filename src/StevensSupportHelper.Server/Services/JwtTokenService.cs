@@ -2,8 +2,8 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using StevensSupportHelper.Server.Services;
 
 namespace StevensSupportHelper.Server.Services;
 
@@ -17,8 +17,9 @@ public sealed class JwtTokenService
     private readonly SymmetricSecurityKey _key;
     private readonly SigningCredentials _credentials;
 
-    public JwtTokenService(JwtOptions options)
+    public JwtTokenService(IOptions<JwtOptions> optionsAccessor)
     {
+        var options = optionsAccessor.Value;
         _issuer = options.Issuer;
         _audience = options.Audience;
         _secretKey = options.SecretKey;

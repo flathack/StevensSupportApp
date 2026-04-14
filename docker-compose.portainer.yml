@@ -2,16 +2,17 @@ version: "3.9"
 
 services:
   stevens-support-helper-server:
-    image: steve/stevens-support-helper-server:latest
+    image: ghcr.io/flathack/stevens-support-app:latest
     container_name: stevens-support-helper-server
     restart: unless-stopped
     ports:
       - "5000:5000"
+      - "5001:5001"
     environment:
-      ASPNETCORE_URLS: "http://0.0.0.0:5000"
       StevensSupportHelperServer__Provider: "Sqlite"
       StevensSupportHelperServer__DatabasePath: "/data/server-state.db"
       StevensSupportHelperServer__StateFilePath: "/data/server-state.json"
+      Api__BaseUrl: "http://127.0.0.1:5000"
       StevensSupportHelperAdminAuth__Accounts__0__DisplayName: "Primary Admin"
       StevensSupportHelperAdminAuth__Accounts__0__ApiKey: "steven-api-key-1"
       StevensSupportHelperAdminAuth__Accounts__0__TotpSecret: ""

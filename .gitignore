@@ -21,6 +21,9 @@ publish/
 # Mono auto generated files
 mono_crash.*
 
+# Installer Payload (large binary files)
+src/StevensSupportHelper.Installer/Payload/
+
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/

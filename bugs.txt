@@ -1,0 +1,88 @@
+- Bei PS Session kommt:
+WinRM precheck failed: <f:WSManFault xmlns:f="http://schemas.microsoft.com/wbem/wsman/1/wsmanfault" Code="12175" Machine="Surface11"><f:Message>Das Serverzertifikat auf dem Zielcomputer (W11-TEST:5986) enthält die folgenden Fehler:
+Das SSL-Zertifikat ist von einer unbekannten Zertifizierungsstelle signiert.      </f:Message></f:WSManFault>
+PS C:\Users\steve\Github\StevensSupportHelper\publish\admin-1.1.0-test\app>
+- Task Manager und File Explorer gehen leider auch nicht.
+- im admin client würde ich auch gerne den gerade angemeldeten user sehen.
+- die UI vom admin client flackert alle paar sekunden, das ist der refresh nehme ich an.
+- ich will einen button -> Rustdesk connection herstellen.
+- ich will per rechtsklick auf einen client settings anpassen können, z. b. Notizen oder die Rustdesk ID.
+- Rustdesk soll standardmäßig per IP Connect machen, wenn das nicht geht, dann per ID
+- Bei rechtsklick auf einen Client will ich auch das Rustdesk Passwort eingeben können, so dass ich bei Rustdesk keine PW abfrage bekomme.
+- in den Settings des Admin Clients will ich den Pfad zu Rustdesk angeben können, der sollte am besten aber automatisch gefunden werden. Wenn er nicht automatisch gefunden wird, dann kann der admin ihn hier eintragen
+- Task Manager und File Explorer und Powershell Fenster für PS Session sollten als separaten Tab im Hauptfenster vom Admin client geöffnet werden. So bleibt alles an einem Ort.
+
+---- 25.03.2026 --- 23:37 ------------------------------------------------------------------------------------------------------------------------------------------------------------------
+- Bei RDP Connect soll immer die tailscale IP genutzt werden für den Zugriff
+- im Admin Client will ich powershell skripte als templates hinterlegen können. Diese möchte ich z. b. per Job einem Client zuweisen können und dann wird das am client ausgeführt.
+- Anzeige der Client Agent Version im Admin Client
+- Update der Client Agents vom Admin Client aus möglich machen
+- Anlage eines service users beim Client PC während Installation des Clients.
+- Aktivierung von RDP (bei Windows 11 Pro) oder Installation von RDP Wrapper bei W11 Home
+- Erstellung von Anleitungen in Form von .md Dateien
+---- 26.03.2026 --- 10:00 ------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# Admin Client Änderungen
+- Liste der Clients: nicht so breite tabelle, lieber in der Höhe mehr Platz pro Client nutzen, damit alles ins Fenster passt.
+- Rechtsklick auf Client ermöglicht verwendung aller Funktionen die ich bei einem Client machen kann
+- Richtigen Remote File Explorer, wie bei einem FTP Client oder WinSCP, also dass ich Daten von Links nach Rechts schieben kann.
+- Remote Registry Editor
+- Remote Shutdown / Reboot
+- in Client Liste: Online Clients haben vorne ein grünes Computer Symbol, Offline Clients ein rotes.
+- VOllwertiger Remote Task Manager, wo man Prozesse beenden, starten kann. Mit Suchfunktion und CPU / Ram Auslastung, Speicherauslastung
+- remote winget ausführung um Programme zu installieren. Ich will aber auf Admin Seite eine GUI haben wo ich die Programme selektiere und diese werden dann Remote installiert
+- Anzeige welche Software ist bei den Clients installiert mit der Möglichkeit diese Remote silent zu deinstallieren.
+- Oberfläche des AdminClients übersichtlich gestalten, so dass jede Funktion gut erreichbar ist und das Programm übersichtlich ist.
+---- 26.03.2026 --- 12:37 ------------------------------------------------------------------------------------------------------------------------------------------------------------------
+- alle drei sek erscheint ein eintrag im log, dass die seite aktualisiert wurde. 
+- MFA / TOTP soll nur erscheinen, wenn TOTP Aktiv
+- Preferred Channel Dropdown ist unnötig, ich will auf einen client klicken und dann alle Aktionen ausführen können, die möglich sind. Ich will dann nur einmalig auf "Request Support" klicken und dann werden alle Aktioen freigeschaltet.
+Also wenn ich dann RustDesk connect anklicke, soll mein lokaler RustDesk Client starten und direkt eine Verbindung zum Client aufbauen etc.
+- Start Local Server kann jetzt oben in die Menüleiste verschwinden.
+- Server Status soll auch in die Menüleiste verschwinden aber immer noch grün oder rot sein.
+
+
+---- 26.03.2026 --- 12:37 ------------------------------------------------------------------------------------------------------------------------------------------------------------------
+- Task Manager geht noch nicht -> Refresh Failed - Module für erstmalige verwendung vorbereit ...
+- Remote Registry wird nicht geladen -> JSON Fehler
+- Rustdesk button geht nicht, rustdesk öffnet sich nicht und es wird auch keine connection aufgebaut (über IP)
+- PS Session -> Erweitern um Ausführung von beim admin gespeicherten Powershell Skripten.
+- rotes / grünes Icon aktualisiert sich nicht wenn sich Status Ändert. der Rand des Objektes im Fenster soll sich auch rot färben
+- online Clients sollen immer oben in der Liste stehen.
+
+---- 27.03.2026 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# Neue Funktionen
+- Chat Funktion mit Client einrichten
+- Energieoptionen beim Client bearbeiten, bzw. anzeigen
+- Windows Updates - fehlende anzeigen, updates pushen etc.
+- Benachrichtigungen beim Admin Online / Offline Clients.
+- Client Kacheln gleich groß machen, damit alles symetrisch aussieht. Kachelgröße: höher aber weniger breit, damit mehr clients nebeneinander angezeigt werden können.
+- Startseite soll nur die Client Kacheln anzeigen. Startseite soll ein Tab einer neuen Hauptnavigation sein. 
+- Wenn ich eine Remote Session mit einem Client starte, soll der Client auch als Haupttab erscheinen und hier soll dann die Sidebar erscheinen, mit den ganzen actions.
+- Im Hauptbereich des Fensters sollen dann die Functionen angezeigt werden als Tab, z. b. Task Manager, Registry Editor etc.
+
+
+
+# Fehlerhaft:
+## Admin Client
+- Registry: Registry als Tree anzeigen
+- Dropdown hovers noch hell bei dark theme
+- farben bei statuswechsel bleiben (steht online aber farbe ist rot)
+- bei client workspace einen Dashboard button: grafische anzeige von statitiken, disk usage, ram usage, cpu.
+- ps script button und functions aus dem code entfernen. an die stelle soll "Remote actions" Was ja das gleiche tut, aber besser. das soll nicht als extra popup sondern ins hauptfenster wie ps script.
+- show screenshot vom client bei bedarf (wird nicht beim admin gespeichert, nur als Vorschau).
+
+## Client Installer: 
+- Service User wird nicht in Admin Gruppe setzt beim install
+- tray-settings.json wird beim install nicht angelegt.
+- 
+
+
+
+
+
+
+
+
+
+
+

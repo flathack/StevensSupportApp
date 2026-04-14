@@ -1,0 +1,32 @@
+version: "3.9"
+
+services:
+  stevens-support-helper-server:
+    image: steve/stevens-support-helper-server:latest
+    container_name: stevens-support-helper-server
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      ASPNETCORE_URLS: "http://0.0.0.0:5000"
+      StevensSupportHelperServer__Provider: "Sqlite"
+      StevensSupportHelperServer__DatabasePath: "/data/server-state.db"
+      StevensSupportHelperServer__StateFilePath: "/data/server-state.json"
+      StevensSupportHelperAdminAuth__Accounts__0__DisplayName: "Primary Admin"
+      StevensSupportHelperAdminAuth__Accounts__0__ApiKey: "steven-api-key-1"
+      StevensSupportHelperAdminAuth__Accounts__0__TotpSecret: ""
+      StevensSupportHelperAdminAuth__Accounts__0__Roles__0: "Administrator"
+      StevensSupportHelperAdminAuth__Accounts__0__Roles__1: "Operator"
+      StevensSupportHelperAdminAuth__Accounts__0__Roles__2: "Auditor"
+      StevensSupportHelperAdminAuth__Accounts__1__DisplayName: "Audit Viewer"
+      StevensSupportHelperAdminAuth__Accounts__1__ApiKey: "steven-api-key-2"
+      StevensSupportHelperAdminAuth__Accounts__1__TotpSecret: ""
+      StevensSupportHelperAdminAuth__Accounts__1__Roles__0: "Auditor"
+      StevensSupportHelperClientRegistration__RequireSignedRegistration: "true"
+      StevensSupportHelperClientRegistration__SharedKey: "fl-alpha1-1"
+      StevensSupportHelperClientRegistration__AllowedClockSkewMinutes: "5"
+    volumes:
+      - stevens-support-helper-data:/data
+
+volumes:
+  stevens-support-helper-data:

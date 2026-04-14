@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/StevensSupportHelper.AdminWeb/StevensSupportHelper.AdminWeb.csproj" />
+    <Project Path="src/StevensSupportHelper.Client.Service/StevensSupportHelper.Client.Service.csproj" />
+    <Project Path="src/StevensSupportHelper.Client.Tray/StevensSupportHelper.Client.Tray.csproj" />
+    <Project Path="src/StevensSupportHelper.Server/StevensSupportHelper.Server.csproj" />
+    <Project Path="src/StevensSupportHelper.Shared/StevensSupportHelper.Shared.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/StevensSupportHelper.Server.Tests/StevensSupportHelper.Server.Tests.csproj" />
+  </Folder>
+</Solution>

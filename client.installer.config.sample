@@ -1,0 +1,22 @@
+{
+  "serverUrl": "http://100.123.81.119:5000",
+  "installRoot": "C:\\Program Files\\StevensSupportHelper",
+  "serviceName": "StevensSupportHelperClientService",
+  "deviceName": "SERVER-01",
+  "registrationSharedKey": "mein-client-key",
+  "installRustDesk": true,
+  "rustDeskInstallerFileName": "rustdesk-1.4.6-x86_64.msi",
+  "installTailscale": true,
+  "tailscaleInstallerFileName": "tailscale-setup-1.96.3.exe",
+  "tailscaleAuthKey": "tskey-auth-kann-hier-direkt-rein",
+  "enableAutoApprove": true,
+  "enableRdp": true,
+  "createServiceUser": false,
+  "serviceUserIsAdministrator": true,
+  "serviceUserName": "ssh_service",
+  "serviceUserPassword": "BitteErsetzen123!",
+  "rustDeskId": "",
+  "rustDeskPassword": "MeinRustDeskPW123!",
+  "tailscaleIpAddresses": [],
+  "silent": true
+}

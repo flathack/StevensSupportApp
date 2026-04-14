@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
+  IgnorableNamespaces="uap desktop">
+  <Identity
+    Name="__PACKAGE_NAME__"
+    Publisher="__PUBLISHER__"
+    Version="__VERSION__" />
+  <Properties>
+    <DisplayName>StevensSupportHelper Client Bundle</DisplayName>
+    <PublisherDisplayName>StevensSupportHelper</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+    <Description>Distribution package for StevensSupportHelper client components and bootstrap installer.</Description>
+  </Properties>
+  <Resources>
+    <Resource Language="en-us" />
+    <Resource Language="de-de" />
+  </Resources>
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+  <Applications>
+    <Application Id="TrayBootstrap" Executable="VFS\ProgramFilesX64\StevensSupportHelper\client-tray\StevensSupportHelper.Client.Tray.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements
+        DisplayName="StevensSupportHelper Client Tray"
+        Description="Visible tray component for StevensSupportHelper"
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png"
+        BackgroundColor="transparent" />
+      <Extensions>
+        <desktop:Extension Category="windows.fullTrustProcess" Executable="VFS\ProgramFilesX64\StevensSupportHelper\client-tray\StevensSupportHelper.Client.Tray.exe" />
+      </Extensions>
+    </Application>
+  </Applications>
+  <Capabilities>
+    <Capability Name="internetClient" />
+    <rescap:Capability Name="runFullTrust" xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities" />
+  </Capabilities>
+</Package>

@@ -1,0 +1,125 @@
+<UserControl x:Class="StevensSupportHelper.Admin.RemoteActionTab"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="220" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock FontSize="20"
+                   FontWeight="SemiBold"
+                   Text="Remote Actions" />
+
+        <Border Grid.Row="1"
+                Margin="0,12,0,0"
+                Padding="12"
+                Background="{DynamicResource PanelBackgroundBrush}"
+                BorderBrush="{DynamicResource PanelBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+            <StackPanel>
+                <TextBlock x:Name="ClientSummaryTextBlock"
+                           FontWeight="SemiBold"
+                           Text="Client: -" />
+                <TextBlock x:Name="ScriptPathTextBlock"
+                           Margin="0,6,0,0"
+                           Text="Script folder: -" />
+                <TextBlock x:Name="AgentStatusTextBlock"
+                           Margin="0,6,0,0"
+                           FontWeight="SemiBold"
+                           Text="Agent: checking..." />
+                <TextBlock x:Name="ReachabilityTextBlock"
+                           Margin="0,6,0,0"
+                           FontWeight="SemiBold"
+                           Text="WinRM: checking..." />
+                <TextBlock x:Name="PrecheckMessageTextBlock"
+                           Margin="0,4,0,0"
+                           Foreground="{DynamicResource SecondaryTextBrush}"
+                           TextWrapping="Wrap"
+                           Text="Precheck is running..." />
+            </StackPanel>
+        </Border>
+
+        <Grid Grid.Row="2"
+              Margin="0,14,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="280" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <DockPanel Grid.Column="0">
+                <StackPanel DockPanel.Dock="Top">
+                    <TextBlock FontWeight="SemiBold"
+                               Text="Scripts" />
+                    <Button Margin="0,8,0,8"
+                            Padding="10,6"
+                            HorizontalAlignment="Left"
+                            Click="RefreshScriptsButton_OnClick"
+                            Content="Refresh" />
+                </StackPanel>
+                <ListBox x:Name="ScriptsListBox"
+                         SelectionChanged="ScriptsListBox_OnSelectionChanged"
+                         DisplayMemberPath="Name" />
+            </DockPanel>
+
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <DockPanel>
+                    <TextBlock x:Name="SelectedScriptTextBlock"
+                               VerticalAlignment="Center"
+                               FontWeight="SemiBold"
+                               Text="Script: -" />
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Right"
+                                DockPanel.Dock="Right">
+                        <Button Margin="0,0,10,0"
+                                Padding="10,6"
+                                Click="SaveButton_OnClick"
+                                Content="Save" />
+                        <Button x:Name="RunButton"
+                                Padding="10,6"
+                                Click="RunButton_OnClick"
+                                Content="Run" />
+                    </StackPanel>
+                </DockPanel>
+
+                <TextBox x:Name="ScriptEditorTextBox"
+                         Grid.Row="1"
+                         Margin="0,8,0,0"
+                         AcceptsReturn="True"
+                         AcceptsTab="True"
+                         TextWrapping="NoWrap"
+                         VerticalScrollBarVisibility="Auto"
+                         HorizontalScrollBarVisibility="Auto"
+                         FontFamily="Consolas" />
+            </Grid>
+        </Grid>
+
+        <GroupBox Grid.Row="3"
+                  Margin="0,14,0,0"
+                  Header="Status / Output">
+            <TextBox x:Name="OutputTextBox"
+                     Margin="8"
+                     IsReadOnly="True"
+                     AcceptsReturn="True"
+                     TextWrapping="Wrap"
+                     VerticalScrollBarVisibility="Auto"
+                     FontFamily="Consolas" />
+        </GroupBox>
+
+        <TextBlock x:Name="StatusTextBlock"
+                   Grid.Row="4"
+                   Margin="0,14,0,0"
+                   Foreground="{DynamicResource SecondaryTextBrush}"
+                   Text="Ready" />
+    </Grid>
+</UserControl>

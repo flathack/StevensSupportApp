@@ -1,0 +1,71 @@
+<UserControl x:Class="StevensSupportHelper.Admin.ServicesTab"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0"
+              Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="260" />
+            </Grid.ColumnDefinitions>
+
+            <Button x:Name="RefreshButton"
+                    Padding="16,8"
+                    Content="Refresh"
+                    Click="RefreshButton_OnClick" />
+            <Button x:Name="StartButton"
+                    Grid.Column="2"
+                    Padding="16,8"
+                    Content="Start"
+                    Click="StartButton_OnClick" />
+            <Button x:Name="StopButton"
+                    Grid.Column="4"
+                    Padding="16,8"
+                    Content="Stop"
+                    Click="StopButton_OnClick" />
+            <Button x:Name="RestartButton"
+                    Grid.Column="6"
+                    Padding="16,8"
+                    Content="Restart"
+                    Click="RestartButton_OnClick" />
+            <TextBox x:Name="SearchTextBox"
+                     Grid.Column="8"
+                     Height="34"
+                     VerticalContentAlignment="Center"
+                     TextChanged="SearchTextBox_OnTextChanged" />
+        </Grid>
+
+        <DataGrid x:Name="ServicesDataGrid"
+                  Grid.Row="1"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True"
+                  SelectionMode="Single"
+                  SelectionChanged="ServicesDataGrid_OnSelectionChanged">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Display Name" Binding="{Binding DisplayName}" Width="3*" />
+                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="2*" />
+                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="120" />
+                <DataGridTextColumn Header="Start Type" Binding="{Binding StartType}" Width="140" />
+                <DataGridCheckBoxColumn Header="Can Stop" Binding="{Binding CanStop}" Width="100" />
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <TextBlock x:Name="StatusTextBlock"
+                   Grid.Row="2"
+                   Margin="0,12,0,0"
+                   Text="Ready" />
+    </Grid>
+</UserControl>

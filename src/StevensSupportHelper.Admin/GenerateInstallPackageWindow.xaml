@@ -1,0 +1,150 @@
+<Window x:Class="StevensSupportHelper.Admin.GenerateInstallPackageWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Generate Install Package"
+        Width="980"
+        Height="780"
+        MinWidth="860"
+        MinHeight="640"
+        WindowStartupLocation="CenterOwner">
+    <DockPanel Margin="16">
+        <Border DockPanel.Dock="Bottom"
+                Margin="0,14,0,0"
+                Padding="12"
+                Background="{DynamicResource PanelBackgroundBrush}"
+                BorderBrush="{DynamicResource PanelBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+            <DockPanel LastChildFill="False">
+                <TextBlock x:Name="StatusTextBlock"
+                           VerticalAlignment="Center"
+                           Foreground="{DynamicResource SecondaryTextBrush}"
+                           Text="Ready" />
+                <StackPanel Orientation="Horizontal"
+                            HorizontalAlignment="Right"
+                            DockPanel.Dock="Right">
+                    <Button Width="120"
+                            Margin="12,0,10,0"
+                            Click="CancelButton_OnClick"
+                            Content="Cancel" />
+                    <Button x:Name="GenerateButton"
+                            Width="180"
+                            Click="GenerateButton_OnClick"
+                            Content="Generate ZIP" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <TextBlock FontSize="22"
+                           FontWeight="SemiBold"
+                           Text="Generate Install Package" />
+                <TextBlock Margin="0,6,0,0"
+                           Foreground="{DynamicResource SecondaryTextBrush}"
+                           TextWrapping="Wrap"
+                           Text="Der Generator packt den Client-Installer, die bearbeitete client.installer.config und alle Dateien aus dem Package-Generator-Ordner in ein ZIP." />
+
+                <GroupBox Margin="0,18,0,0"
+                          Header="Sources">
+                    <Grid Margin="12">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="180" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="120" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Row="0"
+                                   Grid.Column="0"
+                                   Margin="0,8,12,0"
+                                   VerticalAlignment="Center"
+                                   FontWeight="SemiBold"
+                                   Text="Client Installer" />
+                        <TextBox x:Name="ClientInstallerPathTextBox"
+                                 Grid.Row="0"
+                                 Grid.Column="1"
+                                 Height="34"
+                                 Margin="0,4,0,0"
+                                 VerticalContentAlignment="Center" />
+                        <Button Grid.Row="0"
+                                Grid.Column="3"
+                                Height="34"
+                                Margin="0,4,0,0"
+                                Click="BrowseClientInstallerButton_OnClick"
+                                Content="Browse..." />
+
+                        <TextBlock Grid.Row="1"
+                                   Grid.Column="0"
+                                   Margin="0,14,12,0"
+                                   VerticalAlignment="Center"
+                                   FontWeight="SemiBold"
+                                   Text="Package Generator Path" />
+                        <TextBox x:Name="PackageGeneratorPathTextBox"
+                                 Grid.Row="1"
+                                 Grid.Column="1"
+                                 Height="34"
+                                 Margin="0,10,0,0"
+                                 VerticalContentAlignment="Center" />
+                        <Button Grid.Row="1"
+                                Grid.Column="3"
+                                Height="34"
+                                Margin="0,10,0,0"
+                                Click="BrowsePackageGeneratorButton_OnClick"
+                                Content="Browse..." />
+
+                        <TextBlock Grid.Row="2"
+                                   Grid.Column="0"
+                                   Margin="0,14,12,0"
+                                   VerticalAlignment="Center"
+                                   FontWeight="SemiBold"
+                                   Text="Output ZIP" />
+                        <TextBox x:Name="OutputZipPathTextBox"
+                                 Grid.Row="2"
+                                 Grid.Column="1"
+                                 Height="34"
+                                 Margin="0,10,0,0"
+                                 VerticalContentAlignment="Center" />
+                        <Button Grid.Row="2"
+                                Grid.Column="3"
+                                Height="34"
+                                Margin="0,10,0,0"
+                                Click="BrowseOutputZipButton_OnClick"
+                                Content="Browse..." />
+                    </Grid>
+                </GroupBox>
+
+                <GroupBox Margin="0,16,0,0"
+                          Header="client.installer.config">
+                    <Grid Margin="12">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <Button Width="140"
+                                HorizontalAlignment="Left"
+                                Padding="10,6"
+                                Click="ReloadTemplateButton_OnClick"
+                                Content="Reload Template" />
+
+                        <TextBox x:Name="InstallerConfigTextBox"
+                                 Grid.Row="1"
+                                 Margin="0,12,0,0"
+                                 AcceptsReturn="True"
+                                 AcceptsTab="True"
+                                 TextWrapping="NoWrap"
+                                 VerticalScrollBarVisibility="Auto"
+                                 HorizontalScrollBarVisibility="Auto"
+                                 FontFamily="Consolas" />
+                    </Grid>
+                </GroupBox>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</Window>

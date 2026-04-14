@@ -1,0 +1,12 @@
+**/bin/
+**/obj/
+**/.vs/
+**/.idea/
+**/.vscode/
+publish/
+!.runtime/docker-server-publish/
+!.runtime/docker-server-publish/**
+.git/
+.gitignore
+README.md
+readme.md

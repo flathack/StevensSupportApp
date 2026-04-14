@@ -1,0 +1,79 @@
+<UserControl x:Class="StevensSupportHelper.Admin.PowerShellSessionTab"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0"
+              Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <ComboBox x:Name="TemplateComboBox"
+                      Height="34"
+                      DisplayMemberPath="Name"
+                      VerticalContentAlignment="Center" />
+            <Button x:Name="LoadTemplateButton"
+                    Grid.Column="1"
+                    Margin="12,0,0,0"
+                    Padding="16,8"
+                    Content="Load"
+                    Click="LoadTemplateButton_OnClick" />
+            <Button x:Name="SaveTemplateButton"
+                    Grid.Column="2"
+                    Margin="12,0,0,0"
+                    Padding="16,8"
+                    Content="Save"
+                    Click="SaveTemplateButton_OnClick" />
+            <Button x:Name="DeleteTemplateButton"
+                    Grid.Column="3"
+                    Margin="12,0,0,0"
+                    Padding="16,8"
+                    Content="Delete"
+                    Click="DeleteTemplateButton_OnClick" />
+        </Grid>
+
+        <Grid Grid.Row="1"
+              Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBox x:Name="CommandTextBox"
+                     Height="34"
+                     VerticalContentAlignment="Center"
+                     Text="Get-Process | Select-Object -First 20" />
+            <Button x:Name="RunButton"
+                    Grid.Column="1"
+                    Margin="12,0,0,0"
+                    Padding="16,8"
+                    Content="Run"
+                    Click="RunButton_OnClick" />
+        </Grid>
+
+        <TextBox x:Name="OutputTextBox"
+                 Grid.Row="2"
+                 FontFamily="Consolas"
+                 AcceptsReturn="True"
+                 AcceptsTab="True"
+                 IsReadOnly="True"
+                 TextWrapping="NoWrap"
+                 VerticalScrollBarVisibility="Auto"
+                 HorizontalScrollBarVisibility="Auto" />
+
+        <TextBlock x:Name="StatusTextBlock"
+                   Grid.Row="3"
+                   Margin="0,12,0,0"
+                   Text="Ready" />
+    </Grid>
+</UserControl>

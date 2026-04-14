@@ -1,0 +1,285 @@
+<Window x:Class="StevensSupportHelper.Admin.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Einstellungen"
+        Width="860"
+        Height="780"
+        MinWidth="760"
+        MinHeight="680"
+        ResizeMode="CanResize"
+        WindowStartupLocation="CenterOwner">
+    <DockPanel Margin="16">
+        <Border DockPanel.Dock="Bottom"
+                Margin="0,16,0,0"
+                Padding="14"
+                Background="{DynamicResource PanelBackgroundBrush}"
+                BorderBrush="{DynamicResource PanelBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+            <DockPanel LastChildFill="False">
+                <TextBlock VerticalAlignment="Center"
+                           Foreground="{DynamicResource SecondaryTextBrush}"
+                           TextWrapping="Wrap"
+                           Text="Server-, RustDesk-, Skriptpfad-, Client-Installer- sowie globale RustDesk- und Remote-Zugangsdaten werden lokal gespeichert." />
+                <StackPanel Orientation="Horizontal"
+                            HorizontalAlignment="Right"
+                            DockPanel.Dock="Right">
+                    <Button Width="120"
+                            Margin="12,0,10,0"
+                            Click="CancelButton_OnClick"
+                            Content="Cancel" />
+                    <Button Width="120"
+                            Click="SaveButton_OnClick"
+                            Content="Save" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <TextBlock FontSize="22"
+                           FontWeight="SemiBold"
+                           Text="Application Settings" />
+                <TextBlock Margin="0,6,0,0"
+                           Foreground="{DynamicResource SecondaryTextBrush}"
+                           TextWrapping="Wrap"
+                           Text="Hier konfigurierst du Server-Zugang, lokale Tool-Pfade und globale Remote-Credentials fuer den Admin-Client." />
+
+                <GroupBox Margin="0,18,0,0"
+                          Header="Server">
+                    <Grid Margin="12">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="190" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Row="0"
+                                   Grid.Column="0"
+                                   Margin="0,8,14,0"
+                                   VerticalAlignment="Center"
+                                   FontWeight="SemiBold"
+                                   Text="Server URL" />
+                        <TextBox x:Name="ServerUrlTextBox"
+                                 Grid.Row="0"
+                                 Grid.Column="1"
+                                 Height="34"
+                                 Margin="0,4,0,0"
+                                 VerticalContentAlignment="Center" />
+
+                        <TextBlock Grid.Row="1"
+                                   Grid.Column="0"
+                                   Margin="0,14,14,0"
+                                   VerticalAlignment="Center"
+                                   FontWeight="SemiBold"
+                                   Text="API Key" />
+                        <PasswordBox x:Name="ApiKeyPasswordBox"
+                                     Grid.Row="1"
+                                     Grid.Column="1"
+                                     Height="34"
+                                     Margin="0,10,0,0"
+                                     VerticalContentAlignment="Center" />
+
+                        <TextBlock Grid.Row="2"
+                                   Grid.Column="0"
+                                   Margin="0,14,14,0"
+                                   VerticalAlignment="Center"
+                                   FontWeight="SemiBold"
+                                   Text="Server-Projektpfad" />
+                        <Grid Grid.Row="2"
+                              Grid.Column="1"
+                              Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="12" />
+                                <ColumnDefinition Width="120" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBox x:Name="ServerProjectPathTextBox"
+                                     Height="34"
+                                     VerticalContentAlignment="Center" />
+                            <Button Grid.Column="2"
+                                    Height="34"
+                                    Click="BrowseButton_OnClick"
+                                    Content="Browse..." />
+                        </Grid>
+                    </Grid>
+                </GroupBox>
+
+                <GroupBox Margin="0,16,0,0"
+                          Header="Remote Tools">
+                    <Grid Margin="12">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="190" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Row="0"
+                                   Grid.Column="0"
+                                   Margin="0,8,14,0"
+                                   VerticalAlignment="Center"
+                                   FontWeight="SemiBold"
+                                   Text="RustDesk-Pfad" />
+                        <Grid Grid.Row="0"
+                              Grid.Column="1"
+                              Margin="0,4,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="12" />
+                                <ColumnDefinition Width="120" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBox x:Name="RustDeskPathTextBox"
+                                     Height="34"
+                                     VerticalContentAlignment="Center" />
+                            <Button Grid.Column="2"
+                                    Height="34"
+                                    Click="BrowseRustDeskButton_OnClick"
+                                    Content="Browse..." />
+                        </Grid>
+
+                        <TextBlock Grid.Row="1"
+                                   Grid.Column="0"
+                                   Margin="0,14,14,0"
+                                   VerticalAlignment="Center"
+                                   FontWeight="SemiBold"
+                                   Text="Global RustDesk Password" />
+                        <PasswordBox x:Name="RustDeskPasswordBox"
+                                     Grid.Row="1"
+                                     Grid.Column="1"
+                                     Height="34"
+                                     Margin="0,10,0,0"
+                                     VerticalContentAlignment="Center" />
+
+                        <TextBlock Grid.Row="2"
+                                   Grid.Column="0"
+                                   Margin="0,14,14,0"
+                                   VerticalAlignment="Center"
+                                   FontWeight="SemiBold"
+                                   Text="Client-Installer-Pfad" />
+                        <Grid Grid.Row="2"
+                              Grid.Column="1"
+                              Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="12" />
+                                <ColumnDefinition Width="120" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBox x:Name="ClientInstallerPathTextBox"
+                                     Height="34"
+                                     VerticalContentAlignment="Center" />
+                            <Button Grid.Column="2"
+                                    Height="34"
+                                    Click="BrowseClientInstallerButton_OnClick"
+                                    Content="Browse..." />
+                        </Grid>
+
+                        <TextBlock Grid.Row="3"
+                                   Grid.Column="0"
+                                   Margin="0,14,14,0"
+                                   VerticalAlignment="Center"
+                                   FontWeight="SemiBold"
+                                   Text="Remote-Actions-Pfad" />
+                        <Grid Grid.Row="3"
+                              Grid.Column="1"
+                              Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="12" />
+                                <ColumnDefinition Width="120" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBox x:Name="RemoteActionsPathTextBox"
+                                     Height="34"
+                                     VerticalContentAlignment="Center" />
+                            <Button Grid.Column="2"
+                                    Height="34"
+                                    Click="BrowseRemoteActionsButton_OnClick"
+                                    Content="Browse..." />
+                        </Grid>
+
+                        <TextBlock Grid.Row="4"
+                                   Grid.Column="0"
+                                   Margin="0,14,14,0"
+                                   VerticalAlignment="Center"
+                                   FontWeight="SemiBold"
+                                   Text="Package-Generator-Pfad" />
+                        <Grid Grid.Row="4"
+                              Grid.Column="1"
+                              Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="12" />
+                                <ColumnDefinition Width="120" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBox x:Name="PackageGeneratorPathTextBox"
+                                     Height="34"
+                                     VerticalContentAlignment="Center" />
+                            <Button Grid.Column="2"
+                                    Height="34"
+                                    Click="BrowsePackageGeneratorButton_OnClick"
+                                    Content="Browse..." />
+                        </Grid>
+                    </Grid>
+                </GroupBox>
+
+                <GroupBox Margin="0,16,0,0"
+                          Header="Global Remote Credentials">
+                    <Grid Margin="12">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="190" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Row="0"
+                                   Grid.Column="0"
+                                   Margin="0,8,14,0"
+                                   VerticalAlignment="Center"
+                                   FontWeight="SemiBold"
+                                   Text="Global Remote Username" />
+                        <TextBox x:Name="RemoteUserNameTextBox"
+                                 Grid.Row="0"
+                                 Grid.Column="1"
+                                 Height="34"
+                                 Margin="0,4,0,0"
+                                 VerticalContentAlignment="Center" />
+
+                        <TextBlock Grid.Row="1"
+                                   Grid.Column="0"
+                                   Margin="0,14,14,0"
+                                   VerticalAlignment="Center"
+                                   FontWeight="SemiBold"
+                                   Text="Global Remote Password" />
+                        <PasswordBox x:Name="RemotePasswordBox"
+                                     Grid.Row="1"
+                                     Grid.Column="1"
+                                     Height="34"
+                                     Margin="0,10,0,0"
+                                     VerticalContentAlignment="Center" />
+                    </Grid>
+                </GroupBox>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</Window>

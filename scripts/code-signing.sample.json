@@ -1,0 +1,8 @@
+{
+  "TimestampUrl": "http://timestamp.digicert.com",
+  "CertificateThumbprint": "REPLACE_WITH_CERT_THUMBPRINT",
+  "FilePatterns": [
+    "*.exe",
+    "*.dll"
+  ]
+}

@@ -1,0 +1,62 @@
+<UserControl x:Class="StevensSupportHelper.Admin.ChatTab"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Padding="12"
+                Background="{DynamicResource PanelBackgroundBrush}"
+                BorderBrush="{DynamicResource PanelBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+            <TextBlock TextWrapping="Wrap"
+                       Foreground="{DynamicResource SecondaryTextBrush}"
+                       Text="Chat laeuft jetzt ueber den Server. Admin und Client sehen denselben Verlauf; der Client antwortet ueber das Tray-Fenster." />
+        </Border>
+
+        <Button x:Name="RefreshButton"
+                Grid.Row="0"
+                Width="100"
+                HorizontalAlignment="Right"
+                Click="RefreshButton_OnClick"
+                Content="Refresh" />
+
+        <ListView x:Name="MessagesListView"
+                  Grid.Row="1"
+                  Margin="0,12,0,0">
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Header="Time" Width="170" DisplayMemberBinding="{Binding CreatedAtUtc}" />
+                    <GridViewColumn Header="Direction" Width="100" DisplayMemberBinding="{Binding Direction}" />
+                    <GridViewColumn Header="Message" Width="760" DisplayMemberBinding="{Binding Text}" />
+                </GridView>
+            </ListView.View>
+        </ListView>
+
+        <TextBox x:Name="MessageTextBox"
+                 Grid.Row="2"
+                 Margin="0,12,0,0"
+                 Height="70"
+                 AcceptsReturn="True"
+                 TextWrapping="Wrap"
+                 VerticalScrollBarVisibility="Auto" />
+
+        <DockPanel Grid.Row="3"
+                   Margin="0,12,0,0"
+                   LastChildFill="False">
+            <TextBlock x:Name="StatusTextBlock"
+                       VerticalAlignment="Center"
+                       Text="Ready" />
+            <Button x:Name="SendButton"
+                    DockPanel.Dock="Right"
+                    Width="140"
+                    Click="SendButton_OnClick"
+                    Content="Send to Client" />
+        </DockPanel>
+    </Grid>
+</UserControl>

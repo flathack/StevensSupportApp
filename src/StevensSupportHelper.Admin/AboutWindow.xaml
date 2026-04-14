@@ -1,0 +1,54 @@
+<Window x:Class="StevensSupportHelper.Admin.AboutWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Ueber"
+        Height="360"
+        Width="520"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock FontSize="22"
+                   FontWeight="SemiBold"
+                   Text="StevensSupportHelper Admin" />
+
+        <TextBlock Grid.Row="1"
+                   Margin="0,8,0,0"
+                   Foreground="{DynamicResource SecondaryTextBrush}"
+                   Text="Admin-Konsole fuer Support, Fernzugriff, Wartung und Remote-Actions." />
+
+        <Border Grid.Row="2"
+                Margin="0,18,0,0"
+                Padding="14"
+                Background="{DynamicResource PanelBackgroundBrush}"
+                BorderBrush="{DynamicResource PanelBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+            <StackPanel>
+                <TextBlock x:Name="VersionTextBlock"
+                           FontWeight="SemiBold"
+                           Text="Version: -" />
+                <TextBlock Margin="0,8,0,0"
+                           Text="Enthaelt Clientverwaltung, WinRM-Werkzeuge, Audit, Remote-Dateien und skriptbasierte Remote-Actions." 
+                           TextWrapping="Wrap" />
+                <TextBlock Margin="0,12,0,0"
+                           Foreground="{DynamicResource SecondaryTextBrush}"
+                           Text="Build und Funktionen richten sich nach dem aktuellen lokalen Projektstand." 
+                           TextWrapping="Wrap" />
+            </StackPanel>
+        </Border>
+
+        <Button Grid.Row="3"
+                Width="110"
+                Margin="0,18,0,0"
+                HorizontalAlignment="Right"
+                Click="CloseButton_OnClick"
+                Content="Close" />
+    </Grid>
+</Window>

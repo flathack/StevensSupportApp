@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.HttpOverrides;
 using StevensSupportHelper.AdminWeb.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,8 +15,40 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
 });
 builder.Services.AddHttpContextAccessor();
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders =
+        ForwardedHeaders.XForwardedFor |
+        ForwardedHeaders.XForwardedHost |
+        ForwardedHeaders.XForwardedProto;
+
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 var app = builder.Build();
+
+app.UseForwardedHeaders();
+
+var configuredPathBase = app.Configuration["PathBase"];
+if (!string.IsNullOrWhiteSpace(configuredPathBase))
+{
+    app.UsePathBase(configuredPathBase);
+}
+
+app.Use(async (context, next) =>
+{
+    if (context.Request.Headers.TryGetValue("X-Forwarded-Prefix", out var forwardedPrefix))
+    {
+        var pathBase = forwardedPrefix.ToString().TrimEnd('/');
+        if (!string.IsNullOrWhiteSpace(pathBase))
+        {
+            context.Request.PathBase = pathBase.StartsWith('/') ? pathBase : $"/{pathBase}";
+        }
+    }
+
+    await next();
+});
 
 if (!app.Environment.IsDevelopment())
 {

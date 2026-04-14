@@ -12,7 +12,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository_owner }}/stevens-support-helper
+  IMAGE_NAME: flathack/stevens-support-app
 
 jobs:
   docker:
@@ -49,26 +49,12 @@ jobs:
             type=ref,event=tag
             type=sha
 
-      - name: Build Server
+      - name: Build and Push
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            BUILD_TARGET=server
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build AdminWeb
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}-adminweb
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            BUILD_TARGET=adminweb
           cache-from: type=gha
           cache-to: type=gha,mode=max

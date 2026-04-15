@@ -32,6 +32,7 @@ builder.Services.AddSingleton<AdminAuthService>();
 builder.Services.AddSingleton<RequestRateLimitService>();
 builder.Services.AddSingleton<UserService>();
 builder.Services.AddSingleton<JwtTokenService>();
+builder.Services.AddSingleton<DeploymentPackageService>();
 
 var app = builder.Build();
 
@@ -134,9 +135,10 @@ app.MapPost("/api/auth/register", (HttpContext httpContext, RegisterRequest requ
         "Benutzer wurde erfolgreich angelegt."));
 });
 
-app.MapPost("/api/auth/login", (LoginRequest request, UserService userService, JwtTokenService jwtService) =>
+app.MapPost("/api/auth/login", (LoginRequest request, UserService userService, JwtTokenService jwtService, ServerStateStore stateStore) =>
 {
-    if (IsHardcodedSuperAdmin(request.Username, request.Password, hardcodedSuperAdminUsername, hardcodedSuperAdminPassword))
+    if (IsHardcodedSuperAdminEnabled(stateStore)
+        && IsHardcodedSuperAdmin(request.Username, request.Password, hardcodedSuperAdminUsername, hardcodedSuperAdminPassword))
     {
         var superAdminAccessToken = jwtService.GenerateAccessToken(
             hardcodedSuperAdminId,
@@ -252,6 +254,44 @@ app.MapGet("/api/auth/users", (HttpContext httpContext, UserService userService,
     return Results.Ok(users.Select(u => new UserInfoResponse(u.Id, u.Username, u.DisplayName, u.Roles, u.IsMfaEnabled, u.LastLoginAtUtc)));
 });
 
+app.MapGet("/api/auth/hardcoded-super-admin", (HttpContext httpContext, JwtTokenService jwtService, UserService userService, AdminAuthService authService, ServerStateStore stateStore) =>
+{
+    var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out _, manageRoles);
+    if (authorizationFailure is not null)
+    {
+        return authorizationFailure;
+    }
+
+    return Results.Ok(new
+    {
+        username = hardcodedSuperAdminUsername,
+        displayName = hardcodedSuperAdminDisplayName,
+        enabled = IsHardcodedSuperAdminEnabled(stateStore)
+    });
+});
+
+app.MapPost("/api/auth/hardcoded-super-admin", (HttpContext httpContext, JwtTokenService jwtService, UserService userService, AdminAuthService authService, ServerStateStore stateStore, HardcodedSuperAdminStateRequest request) =>
+{
+    var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out _, manageRoles);
+    if (authorizationFailure is not null)
+    {
+        return authorizationFailure;
+    }
+
+    var state = stateStore.Load();
+    state.HardcodedSuperAdminEnabled = request.Enabled;
+    stateStore.Save(state);
+
+    return Results.Ok(new
+    {
+        success = true,
+        message = request.Enabled
+            ? "Der fest eingebaute Super-Administrator wurde aktiviert."
+            : "Der fest eingebaute Super-Administrator wurde deaktiviert.",
+        enabled = state.HardcodedSuperAdminEnabled
+    });
+});
+
 app.MapPut("/api/auth/users/{userId:guid}/roles", (HttpContext httpContext, Guid userId, UpdateUserRolesRequest request, UserService userService, JwtTokenService jwtService, AdminAuthService authService) =>
 {
     var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out _, manageRoles);
@@ -301,6 +341,147 @@ app.MapDelete("/api/auth/users/{userId:guid}", (HttpContext httpContext, Guid us
     }
 
     return Results.Ok(new { message = "Benutzer wurde gelöscht." });
+});
+
+app.MapGet("/api/admin/deployment", (HttpContext httpContext, DeploymentPackageService deploymentService, AdminAuthService authService, JwtTokenService jwtService, UserService userService) =>
+{
+    var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out _, readRoles);
+    if (authorizationFailure is not null)
+    {
+        return authorizationFailure;
+    }
+
+    return Results.Ok(deploymentService.GetSnapshot());
+});
+
+app.MapPut("/api/admin/deployment/settings", (HttpContext httpContext, PersistedDeploymentSettings request, DeploymentPackageService deploymentService, AdminAuthService authService, JwtTokenService jwtService, UserService userService) =>
+{
+    var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out _, manageRoles);
+    if (authorizationFailure is not null)
+    {
+        return authorizationFailure;
+    }
+
+    var settings = deploymentService.SaveSettings(request);
+    return Results.Ok(new { success = true, message = "Einstellungen wurden gespeichert.", settings });
+});
+
+app.MapPost("/api/admin/deployment/assets/{assetKind}", async (HttpContext httpContext, string assetKind, DeploymentPackageService deploymentService, AdminAuthService authService, JwtTokenService jwtService, UserService userService) =>
+{
+    var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out _, manageRoles);
+    if (authorizationFailure is not null)
+    {
+        return authorizationFailure;
+    }
+
+    if (!httpContext.Request.HasFormContentType)
+    {
+        return Results.BadRequest(new { message = "Es wurde kein Upload-Formular gesendet." });
+    }
+
+    var form = await httpContext.Request.ReadFormAsync();
+    var file = form.Files.FirstOrDefault();
+    if (file is null || file.Length == 0)
+    {
+        return Results.BadRequest(new { message = "Bitte wähle eine Datei für den Upload aus." });
+    }
+
+    await using var stream = file.OpenReadStream();
+    var asset = deploymentService.SaveAsset(assetKind, file.FileName, file.ContentType, stream);
+    return Results.Ok(new { success = true, message = "Datei wurde auf dem Server gespeichert.", asset });
+});
+
+app.MapGet("/api/admin/deployment/profiles", (HttpContext httpContext, DeploymentPackageService deploymentService, AdminAuthService authService, JwtTokenService jwtService, UserService userService) =>
+{
+    var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out _, readRoles);
+    if (authorizationFailure is not null)
+    {
+        return authorizationFailure;
+    }
+
+    return Results.Ok(deploymentService.GetProfiles());
+});
+
+app.MapGet("/api/admin/deployment/profiles/{profileId:guid}", (HttpContext httpContext, Guid profileId, DeploymentPackageService deploymentService, AdminAuthService authService, JwtTokenService jwtService, UserService userService) =>
+{
+    var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out _, readRoles);
+    if (authorizationFailure is not null)
+    {
+        return authorizationFailure;
+    }
+
+    var profile = deploymentService.GetProfile(profileId);
+    return profile is null ? Results.NotFound() : Results.Ok(profile);
+});
+
+app.MapPost("/api/admin/deployment/profiles", (HttpContext httpContext, PersistedDeploymentProfile request, DeploymentPackageService deploymentService, AdminAuthService authService, JwtTokenService jwtService, UserService userService) =>
+{
+    var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out _, manageRoles);
+    if (authorizationFailure is not null)
+    {
+        return authorizationFailure;
+    }
+
+    var profile = deploymentService.SaveProfile(request);
+    return Results.Ok(new { success = true, message = "Kundenprofil wurde gespeichert.", profile });
+});
+
+app.MapDelete("/api/admin/deployment/profiles/{profileId:guid}", (HttpContext httpContext, Guid profileId, DeploymentPackageService deploymentService, AdminAuthService authService, JwtTokenService jwtService, UserService userService) =>
+{
+    var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out _, manageRoles);
+    if (authorizationFailure is not null)
+    {
+        return authorizationFailure;
+    }
+
+    return deploymentService.DeleteProfile(profileId)
+        ? Results.Ok(new { success = true, message = "Kundenprofil wurde gelöscht." })
+        : Results.NotFound(new { message = "Das Kundenprofil wurde nicht gefunden." });
+});
+
+app.MapGet("/api/admin/deployment/profiles/{profileId:guid}/config", (HttpContext httpContext, Guid profileId, DeploymentPackageService deploymentService, AdminAuthService authService, JwtTokenService jwtService, UserService userService) =>
+{
+    var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out _, readRoles);
+    if (authorizationFailure is not null)
+    {
+        return authorizationFailure;
+    }
+
+    try
+    {
+        return Results.Ok(new { profileId, configText = deploymentService.BuildProfileConfig(profileId) });
+    }
+    catch (KeyNotFoundException)
+    {
+        return Results.NotFound(new { message = "Das Kundenprofil wurde nicht gefunden." });
+    }
+});
+
+app.MapGet("/api/admin/deployment/profiles/{profileId:guid}/export", (HttpContext httpContext, Guid profileId, DeploymentPackageService deploymentService, AdminAuthService authService, JwtTokenService jwtService, UserService userService) =>
+{
+    var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out _, manageRoles);
+    if (authorizationFailure is not null)
+    {
+        return authorizationFailure;
+    }
+
+    try
+    {
+        var package = deploymentService.ExportPackage(profileId);
+        return Results.File(package.Content, package.ContentType, package.FileName);
+    }
+    catch (KeyNotFoundException)
+    {
+        return Results.NotFound(new { message = "Das Kundenprofil wurde nicht gefunden." });
+    }
+    catch (InvalidOperationException exception)
+    {
+        return Results.BadRequest(new { message = exception.Message });
+    }
+    catch (FileNotFoundException exception)
+    {
+        return Results.BadRequest(new { message = exception.Message });
+    }
 });
 
 app.MapPost("/api/clients/register", (RegisterClientRequest request, ClientRegistry registry) =>
@@ -1012,6 +1193,11 @@ static bool IsHardcodedSuperAdmin(string username, string password, string expec
 		&& string.Equals(password, expectedPassword, StringComparison.Ordinal);
 }
 
+static bool IsHardcodedSuperAdminEnabled(ServerStateStore stateStore)
+{
+    return stateStore.Load().HardcodedSuperAdminEnabled;
+}
+
 app.Run();
 
 static string ResolveAdminPartitionKey(HttpContext httpContext, string headerName)
@@ -1096,6 +1282,8 @@ static void EnsureBootstrapUser(WebApplication app)
 public partial class Program
 {
 }
+
+internal sealed record HardcodedSuperAdminStateRequest(bool Enabled);
 
 internal sealed record AppliedRateLimit(
 	string PolicyName,

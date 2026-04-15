@@ -18,6 +18,7 @@ public class UsersModel : PageModel
     public string UserId { get; set; } = "-";
     public List<string> Roles { get; set; } = [];
     public List<UserInfoResponse> Users { get; set; } = [];
+    public HardcodedSuperAdminStateResponse? HardcodedSuperAdmin { get; set; }
     public IReadOnlyList<string> RoleOptions => AvailableRoles;
     public string? StatusMessage { get; set; }
     public bool IsError { get; set; }
@@ -154,6 +155,19 @@ public class UsersModel : PageModel
         return await LoadPageAsync(response?.Message ?? "Passwort konnte nicht geändert werden.", response?.Success != true);
     }
 
+    public async Task<IActionResult> OnPostSetHardcodedSuperAdminStateAsync(bool enabled)
+    {
+        var token = HttpContext.Session.GetString("AccessToken");
+        if (string.IsNullOrEmpty(token))
+        {
+            return RedirectToPage("/Auth/Login");
+        }
+
+        _apiClient.SetAccessToken(token);
+        var response = await _apiClient.UpdateHardcodedSuperAdminStateAsync(enabled);
+        return await LoadPageAsync(response?.Message ?? "Der Status des Super-Administrators konnte nicht aktualisiert werden.", response?.Success != true);
+    }
+
     private async Task<IActionResult> LoadPageAsync(string? statusMessage = null, bool isError = false)
     {
         var token = HttpContext.Session.GetString("AccessToken");
@@ -178,6 +192,7 @@ public class UsersModel : PageModel
 
         var users = await _apiClient.GetUsersAsync();
         Users = users?.OrderBy(user => user.DisplayName, StringComparer.OrdinalIgnoreCase).ToList() ?? [];
+        HardcodedSuperAdmin = await _apiClient.GetHardcodedSuperAdminStateAsync();
 
         if (users is null && string.IsNullOrEmpty(StatusMessage))
         {

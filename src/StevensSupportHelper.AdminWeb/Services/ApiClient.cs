@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Net.Http.Headers;
 
 namespace StevensSupportHelper.AdminWeb.Services;
 
@@ -64,6 +65,31 @@ public sealed class ApiClient
         }
 
         return await response.Content.ReadFromJsonAsync<List<UserInfoResponse>>(JsonOptions);
+    }
+
+    public async Task<HardcodedSuperAdminStateResponse?> GetHardcodedSuperAdminStateAsync()
+    {
+        var response = await _httpClient.GetAsync("/api/auth/hardcoded-super-admin");
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        return await response.Content.ReadFromJsonAsync<HardcodedSuperAdminStateResponse>(JsonOptions);
+    }
+
+    public async Task<ApiMessageResponse?> UpdateHardcodedSuperAdminStateAsync(bool enabled)
+    {
+        var response = await _httpClient.PostAsJsonAsync("/api/auth/hardcoded-super-admin", new { Enabled = enabled });
+        if (!response.IsSuccessStatusCode)
+        {
+            return await ReadErrorResponseAsync(response);
+        }
+
+        return await response.Content.ReadFromJsonAsync<ApiMessageResponse>(JsonOptions)
+            ?? new ApiMessageResponse(true, enabled
+                ? "Der fest eingebaute Super-Administrator wurde aktiviert."
+                : "Der fest eingebaute Super-Administrator wurde deaktiviert.");
     }
 
     public async Task<ApiMessageResponse?> CreateUserAsync(CreateUserRequest request)
@@ -207,6 +233,112 @@ public sealed class ApiClient
         return await response.Content.ReadFromJsonAsync<ScriptResultResponse>(JsonOptions);
     }
 
+    public async Task<DeploymentSnapshotResponse?> GetDeploymentSnapshotAsync()
+    {
+        var response = await _httpClient.GetAsync("/api/admin/deployment");
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        return await response.Content.ReadFromJsonAsync<DeploymentSnapshotResponse>(JsonOptions);
+    }
+
+    public async Task<ApiResult<DeploymentSettingsResponse>?> SaveDeploymentSettingsAsync(DeploymentSettingsRequest request)
+    {
+        var response = await _httpClient.PutAsJsonAsync("/api/admin/deployment/settings", request);
+        return await ReadApiResultAsync<DeploymentSettingsEnvelope, DeploymentSettingsResponse>(
+            response,
+            payload => payload.Settings);
+    }
+
+    public async Task<ApiResult<DeploymentAssetResponse>?> UploadDeploymentAssetAsync(string assetKind, Stream contentStream, string fileName, string contentType)
+    {
+        using var multipartContent = new MultipartFormDataContent();
+        using var streamContent = new StreamContent(contentStream);
+        streamContent.Headers.ContentType = new MediaTypeHeaderValue(string.IsNullOrWhiteSpace(contentType) ? "application/octet-stream" : contentType);
+        multipartContent.Add(streamContent, "file", fileName);
+
+        var response = await _httpClient.PostAsync($"/api/admin/deployment/assets/{assetKind}", multipartContent);
+        return await ReadApiResultAsync<DeploymentAssetEnvelope, DeploymentAssetResponse>(
+            response,
+            payload => payload.Asset);
+    }
+
+    public async Task<ApiResult<DeploymentProfileResponse>?> SaveDeploymentProfileAsync(DeploymentProfileRequest request)
+    {
+        var response = await _httpClient.PostAsJsonAsync("/api/admin/deployment/profiles", request);
+        return await ReadApiResultAsync<DeploymentProfileEnvelope, DeploymentProfileResponse>(
+            response,
+            payload => payload.Profile);
+    }
+
+    public async Task<ApiMessageResponse?> DeleteDeploymentProfileAsync(Guid profileId)
+    {
+        var response = await _httpClient.DeleteAsync($"/api/admin/deployment/profiles/{profileId}");
+        if (!response.IsSuccessStatusCode)
+        {
+            return await ReadErrorResponseAsync(response);
+        }
+
+        return await response.Content.ReadFromJsonAsync<ApiMessageResponse>(JsonOptions)
+            ?? new ApiMessageResponse(true, "Kundenprofil wurde gelöscht.");
+    }
+
+    public async Task<DeploymentConfigResponse?> GetDeploymentProfileConfigAsync(Guid profileId)
+    {
+        var response = await _httpClient.GetAsync($"/api/admin/deployment/profiles/{profileId}/config");
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        return await response.Content.ReadFromJsonAsync<DeploymentConfigResponse>(JsonOptions);
+    }
+
+    public async Task<PackageDownloadResponse?> DownloadDeploymentPackageAsync(Guid profileId)
+    {
+        var response = await _httpClient.GetAsync($"/api/admin/deployment/profiles/{profileId}/export");
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        var fileName = response.Content.Headers.ContentDisposition?.FileNameStar
+            ?? response.Content.Headers.ContentDisposition?.FileName?.Trim('"')
+            ?? "StevensSupportHelper-Paket.zip";
+        var contentType = response.Content.Headers.ContentType?.MediaType ?? "application/zip";
+        var content = await response.Content.ReadAsByteArrayAsync();
+        return new PackageDownloadResponse(fileName, contentType, content);
+    }
+
+    private static async Task<ApiResult<TData>?> ReadApiResultAsync<TEnvelope, TData>(
+        HttpResponseMessage response,
+        Func<TEnvelope, TData?> dataSelector)
+        where TEnvelope : class
+        where TData : class
+    {
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await ReadErrorResponseAsync(response);
+            return error is null ? null : new ApiResult<TData>(error.Success, error.Message, null);
+        }
+
+        var payload = await response.Content.ReadFromJsonAsync<TEnvelope>(JsonOptions);
+        if (payload is null)
+        {
+            return new ApiResult<TData>(false, "Die Serverantwort konnte nicht gelesen werden.", null);
+        }
+
+        var message = payload switch
+        {
+            IApiMessageEnvelope messageEnvelope => messageEnvelope.Message,
+            _ => "Operation erfolgreich."
+        };
+
+        return new ApiResult<TData>(true, message, dataSelector(payload));
+    }
+
     private static async Task<ApiMessageResponse?> ReadErrorResponseAsync(HttpResponseMessage response)
     {
         try
@@ -238,6 +370,11 @@ public sealed record UserInfoResponse(
     IReadOnlyList<string> Roles,
     bool IsMfaEnabled,
     DateTime? LastLoginAtUtc);
+
+public sealed record HardcodedSuperAdminStateResponse(
+    string Username,
+    string DisplayName,
+    bool Enabled);
 
 public sealed record CreateUserRequest(
     string Username,
@@ -321,3 +458,135 @@ public sealed record ScriptResultResponse(
 public sealed record ApiMessageResponse(
     bool Success,
     string Message);
+
+public sealed record ApiResult<T>(
+    bool Success,
+    string Message,
+    T? Data)
+    where T : class;
+
+public interface IApiMessageEnvelope
+{
+    string Message { get; }
+}
+
+public sealed record DeploymentSnapshotResponse(
+    DeploymentSettingsResponse Settings,
+    IReadOnlyList<DeploymentAssetResponse> Assets,
+    IReadOnlyList<DeploymentProfileResponse> Profiles);
+
+public sealed record DeploymentSettingsRequest(
+    string ServerUrl,
+    string ApiKey,
+    string ServerProjectPath,
+    string RustDeskPath,
+    string RustDeskPassword,
+    string ClientInstallerPath,
+    string RemoteActionsPath,
+    string PackageGeneratorPath,
+    string RemoteUserName,
+    string RemotePassword,
+    string PreferredChannel,
+    string Reason,
+    string DefaultRegistrationSharedKey,
+    string DefaultInstallRoot,
+    string DefaultServiceName);
+
+public sealed record DeploymentSettingsResponse(
+    string ServerUrl,
+    string ApiKey,
+    string ServerProjectPath,
+    string RustDeskPath,
+    string RustDeskPassword,
+    string ClientInstallerPath,
+    string RemoteActionsPath,
+    string PackageGeneratorPath,
+    string RemoteUserName,
+    string RemotePassword,
+    string PreferredChannel,
+    string Reason,
+    string DefaultRegistrationSharedKey,
+    string DefaultInstallRoot,
+    string DefaultServiceName);
+
+public sealed record DeploymentAssetResponse(
+    Guid Id,
+    string Kind,
+    string OriginalFileName,
+    string StoredFileName,
+    string ContentType,
+    long FileSizeBytes,
+    string Sha256,
+    DateTimeOffset UploadedAtUtc);
+
+public sealed record DeploymentProfileRequest(
+    Guid Id,
+    string CustomerName,
+    string DeviceName,
+    string Notes,
+    string ServerUrl,
+    string RegistrationSharedKey,
+    string InstallRoot,
+    string ServiceName,
+    bool InstallRustDesk,
+    bool InstallTailscale,
+    string TailscaleAuthKey,
+    bool EnableAutoApprove,
+    bool EnableRdp,
+    bool CreateServiceUser,
+    bool ServiceUserIsAdministrator,
+    string ServiceUserName,
+    string ServiceUserPassword,
+    string RustDeskId,
+    string RustDeskPassword,
+    List<string> TailscaleIpAddresses,
+    bool Silent);
+
+public sealed record DeploymentProfileResponse(
+    Guid Id,
+    string CustomerName,
+    string DeviceName,
+    string Notes,
+    string ServerUrl,
+    string RegistrationSharedKey,
+    string InstallRoot,
+    string ServiceName,
+    bool InstallRustDesk,
+    bool InstallTailscale,
+    string TailscaleAuthKey,
+    bool EnableAutoApprove,
+    bool EnableRdp,
+    bool CreateServiceUser,
+    bool ServiceUserIsAdministrator,
+    string ServiceUserName,
+    string ServiceUserPassword,
+    string RustDeskId,
+    string RustDeskPassword,
+    IReadOnlyList<string> TailscaleIpAddresses,
+    bool Silent,
+    DateTimeOffset CreatedAtUtc,
+    DateTimeOffset UpdatedAtUtc);
+
+public sealed record DeploymentConfigResponse(
+    Guid ProfileId,
+    string ConfigText);
+
+public sealed record PackageDownloadResponse(
+    string FileName,
+    string ContentType,
+    byte[] Content);
+
+public sealed record DeploymentSettingsEnvelope(
+    bool Success,
+    string Message,
+    DeploymentSettingsResponse Settings) : IApiMessageEnvelope;
+
+public sealed record DeploymentAssetEnvelope(
+    bool Success,
+    string Message,
+    DeploymentAssetResponse Asset) : IApiMessageEnvelope;
+
+public sealed record DeploymentProfileEnvelope(
+    bool Success,
+    string Message,
+    DeploymentProfileResponse Profile) : IApiMessageEnvelope;

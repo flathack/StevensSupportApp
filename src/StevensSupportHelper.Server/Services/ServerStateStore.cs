@@ -18,6 +18,7 @@ public sealed class ServerStateStore
     private readonly string _provider;
     private readonly string _stateFilePath;
     private readonly string _databasePath;
+    public string StorageRootPath { get; }
 
     public ServerStateStore(IOptions<ServerStorageOptions> options)
     {
@@ -27,9 +28,11 @@ public sealed class ServerStateStore
             : configuredOptions.Provider.Trim();
         _stateFilePath = Environment.ExpandEnvironmentVariables(configuredOptions.StateFilePath);
         _databasePath = Environment.ExpandEnvironmentVariables(configuredOptions.DatabasePath);
+        StorageRootPath = ResolveStorageRoot(_databasePath, _stateFilePath);
 
         EnsureParentDirectory(_stateFilePath);
         EnsureParentDirectory(_databasePath);
+        Directory.CreateDirectory(StorageRootPath);
     }
 
     public PersistedServerState Load()
@@ -168,6 +171,23 @@ public sealed class ServerStateStore
             Directory.CreateDirectory(directory);
         }
     }
+
+    private static string ResolveStorageRoot(string databasePath, string stateFilePath)
+    {
+        var databaseDirectory = Path.GetDirectoryName(databasePath);
+        if (!string.IsNullOrWhiteSpace(databaseDirectory))
+        {
+            return databaseDirectory;
+        }
+
+        var stateDirectory = Path.GetDirectoryName(stateFilePath);
+        if (!string.IsNullOrWhiteSpace(stateDirectory))
+        {
+            return stateDirectory;
+        }
+
+        return AppContext.BaseDirectory;
+    }
 }
 
 public sealed class PersistedServerState
@@ -178,6 +198,68 @@ public sealed class PersistedServerState
     public List<PersistedAgentJobRecord> AgentJobs { get; init; } = [];
     public List<PersistedChatMessageRecord> ChatMessages { get; init; } = [];
     public List<PersistedUserRecord> Users { get; set; } = [];
+    public bool HardcodedSuperAdminEnabled { get; set; } = true;
+    public PersistedDeploymentSettings DeploymentSettings { get; set; } = new();
+    public List<PersistedDeploymentAsset> DeploymentAssets { get; set; } = [];
+    public List<PersistedDeploymentProfile> DeploymentProfiles { get; set; } = [];
+}
+
+public sealed class PersistedDeploymentSettings
+{
+    public string ServerUrl { get; set; } = "http://localhost:5000";
+    public string ApiKey { get; set; } = string.Empty;
+    public string ServerProjectPath { get; set; } = string.Empty;
+    public string RustDeskPath { get; set; } = string.Empty;
+    public string RustDeskPassword { get; set; } = string.Empty;
+    public string ClientInstallerPath { get; set; } = string.Empty;
+    public string RemoteActionsPath { get; set; } = string.Empty;
+    public string PackageGeneratorPath { get; set; } = string.Empty;
+    public string RemoteUserName { get; set; } = string.Empty;
+    public string RemotePassword { get; set; } = string.Empty;
+    public string PreferredChannel { get; set; } = "Rdp";
+    public string Reason { get; set; } = "Remote support requested.";
+    public string DefaultRegistrationSharedKey { get; set; } = string.Empty;
+    public string DefaultInstallRoot { get; set; } = @"C:\Program Files\StevensSupportHelper";
+    public string DefaultServiceName { get; set; } = "StevensSupportHelperClientService";
+}
+
+public sealed class PersistedDeploymentAsset
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string Kind { get; set; } = string.Empty;
+    public string OriginalFileName { get; set; } = string.Empty;
+    public string StoredFileName { get; set; } = string.Empty;
+    public string ContentType { get; set; } = "application/octet-stream";
+    public long FileSizeBytes { get; set; }
+    public string Sha256 { get; set; } = string.Empty;
+    public DateTimeOffset UploadedAtUtc { get; set; } = DateTimeOffset.UtcNow;
+}
+
+public sealed class PersistedDeploymentProfile
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string CustomerName { get; set; } = string.Empty;
+    public string DeviceName { get; set; } = string.Empty;
+    public string Notes { get; set; } = string.Empty;
+    public string ServerUrl { get; set; } = string.Empty;
+    public string RegistrationSharedKey { get; set; } = string.Empty;
+    public string InstallRoot { get; set; } = string.Empty;
+    public string ServiceName { get; set; } = string.Empty;
+    public bool InstallRustDesk { get; set; } = true;
+    public bool InstallTailscale { get; set; } = true;
+    public string TailscaleAuthKey { get; set; } = string.Empty;
+    public bool EnableAutoApprove { get; set; } = true;
+    public bool EnableRdp { get; set; } = true;
+    public bool CreateServiceUser { get; set; }
+    public bool ServiceUserIsAdministrator { get; set; } = true;
+    public string ServiceUserName { get; set; } = string.Empty;
+    public string ServiceUserPassword { get; set; } = string.Empty;
+    public string RustDeskId { get; set; } = string.Empty;
+    public string RustDeskPassword { get; set; } = string.Empty;
+    public List<string> TailscaleIpAddresses { get; set; } = [];
+    public bool Silent { get; set; } = true;
+    public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset UpdatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 }
 
 public sealed class PersistedUserRecord

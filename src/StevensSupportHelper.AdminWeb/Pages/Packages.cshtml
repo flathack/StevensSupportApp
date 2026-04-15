@@ -1,0 +1,333 @@
+@page
+@model StevensSupportHelper.AdminWeb.Pages.PackagesModel
+@{
+    ViewData["Title"] = "Paketgenerator";
+    ViewData["Subtitle"] = "Kunden-PC-Profile, Installer-Uploads und ZIP-Export in einem Arbeitsbereich";
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.ActionMessage))
+{
+    <div class="shell-alert @(Model.ActionSucceeded ? "success" : "error")">@Model.ActionMessage</div>
+}
+
+<div class="cards-grid two-col">
+    <section class="surface-card">
+        <div class="surface-card-header">
+            <div class="card-heading">
+                <span class="section-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+                        <path d="M12 3v12m0 0-4-4m4 4 4-4M5 19h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </span>
+                <div>
+                    <div class="eyebrow">Uploads</div>
+                    <h2 class="section-title">Installer auf den Server laden</h2>
+                    <p class="section-subtitle">Hier speicherst du die Dateien, die später automatisch in das Kundenpaket aufgenommen werden.</p>
+                </div>
+            </div>
+        </div>
+        <div class="surface-card-body">
+            <div class="asset-upload-grid">
+                <form method="post" asp-page-handler="Upload" enctype="multipart/form-data" class="surface-subcard stack-form compact-form">
+                    <input type="hidden" name="assetKind" value="client-installer" />
+                    <div class="subcard-heading">
+                        <span class="subcard-icon">
+                            <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+                                <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7A2.5 2.5 0 0 1 17.5 16h-4l1.5 2h2a1 1 0 1 1 0 2H7a1 1 0 1 1 0-2h2l1.5-2h-4A2.5 2.5 0 0 1 4 13.5v-7z" fill="none" stroke="currentColor" stroke-width="1.7" />
+                            </svg>
+                        </span>
+                        <div class="mini-title">Client-Installer</div>
+                    </div>
+                    <input asp-for="ClientInstallerUpload" type="file" class="shell-input" />
+                    <button type="submit" class="shell-btn-outline">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg icon-button">
+                            <path d="M12 4v10m0 0-4-4m4 4 4-4M5 19h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        Hochladen
+                    </button>
+                </form>
+
+                <form method="post" asp-page-handler="Upload" enctype="multipart/form-data" class="surface-subcard stack-form compact-form">
+                    <input type="hidden" name="assetKind" value="rustdesk-installer" />
+                    <div class="subcard-heading">
+                        <span class="subcard-icon">
+                            <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+                                <path d="M7 7h10v10H7z" fill="none" stroke="currentColor" stroke-width="1.8" />
+                                <path d="M10 10h4v4h-4z" fill="currentColor" />
+                            </svg>
+                        </span>
+                        <div class="mini-title">RustDesk-Installer</div>
+                    </div>
+                    <input asp-for="RustDeskInstallerUpload" type="file" class="shell-input" />
+                    <button type="submit" class="shell-btn-outline">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg icon-button">
+                            <path d="M12 4v10m0 0-4-4m4 4 4-4M5 19h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        Hochladen
+                    </button>
+                </form>
+
+                <form method="post" asp-page-handler="Upload" enctype="multipart/form-data" class="surface-subcard stack-form compact-form">
+                    <input type="hidden" name="assetKind" value="tailscale-installer" />
+                    <div class="subcard-heading">
+                        <span class="subcard-icon">
+                            <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+                                <path d="M12 4a8 8 0 1 0 8 8" fill="none" stroke="currentColor" stroke-width="1.8" />
+                                <path d="M12 8a4 4 0 1 1-4 4" fill="none" stroke="currentColor" stroke-width="1.8" />
+                            </svg>
+                        </span>
+                        <div class="mini-title">Tailscale-Installer</div>
+                    </div>
+                    <input asp-for="TailscaleInstallerUpload" type="file" class="shell-input" />
+                    <button type="submit" class="shell-btn-outline">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg icon-button">
+                            <path d="M12 4v10m0 0-4-4m4 4 4-4M5 19h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        Hochladen
+                    </button>
+                </form>
+            </div>
+
+            <div class="asset-status-list mt-3">
+                @foreach (var asset in Model.Assets)
+                {
+                    <article class="surface-subcard compact">
+                        <div class="asset-heading">
+                            <span class="subcard-icon">
+                                <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+                                    <path d="M6 4h9l3 3v13H6z" fill="none" stroke="currentColor" stroke-width="1.8" />
+                                    <path d="M9 11h6M9 15h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                                </svg>
+                            </span>
+                            <div>
+                                <div class="mini-label">@asset.Kind</div>
+                                <div class="mini-title mt-2">@asset.OriginalFileName</div>
+                            </div>
+                        </div>
+                        <div class="mini-value">@(Math.Round(asset.FileSizeBytes / 1024d / 1024d, 2)) MB</div>
+                        <div class="shell-panel-muted mt-3">
+                            Hochgeladen am @asset.UploadedAtUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                        </div>
+                    </article>
+                }
+            </div>
+        </div>
+    </section>
+
+    <section class="surface-card">
+        <div class="surface-card-header">
+            <div class="card-heading">
+                <span class="section-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+                        <path d="M12 2l8 4v12l-8 4-8-4V6l8-4z" fill="none" stroke="currentColor" stroke-width="1.8" />
+                        <path d="M12 8v8M8 12h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                    </svg>
+                </span>
+                <div>
+                    <div class="eyebrow">Profile</div>
+                    <h2 class="section-title">Gespeicherte Kunden-PCs</h2>
+                    <p class="section-subtitle">Jedes Profil enthält eine eigene `client.installer.config` und kann jederzeit erneut exportiert werden.</p>
+                </div>
+            </div>
+            <a asp-page="/Packages" class="shell-btn-outline">
+                <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg icon-button">
+                    <path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                </svg>
+                Neues Profil
+            </a>
+        </div>
+        <div class="surface-card-body">
+            @if (Model.Profiles.Count == 0)
+            {
+                <div class="empty-state">Noch keine Kundenprofile gespeichert.</div>
+            }
+            else
+            {
+                <div class="profile-list">
+                    @foreach (var profile in Model.Profiles)
+                    {
+                        <article class="surface-subcard compact @(Model.SelectedProfileId == profile.Id ? "profile-card-active" : null)">
+                            <div class="user-card-header">
+                                <div class="asset-heading">
+                                    <span class="subcard-icon">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+                                            <path d="M12 4a5 5 0 1 0 5 5 5 5 0 0 0-5-5zm-7 15a7 7 0 0 1 14 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                                        </svg>
+                                    </span>
+                                    <div>
+                                        <div class="mini-title">@profile.CustomerName</div>
+                                        <div class="section-subtitle">@profile.DeviceName</div>
+                                    </div>
+                                </div>
+                                <span class="status-badge-shell @(profile.Silent ? "online" : "offline")">@(profile.Silent ? "Silent" : "Interaktiv")</span>
+                            </div>
+                            <div class="detail-pairs">
+                                <div><strong>Server:</strong> @profile.ServerUrl</div>
+                                <div><strong>Zuletzt geändert:</strong> @profile.UpdatedAtUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</div>
+                            </div>
+                            <div class="action-row mt-3">
+                                <a asp-page="/Packages" asp-route-profileId="@profile.Id" class="shell-btn-outline">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg icon-button">
+                                        <path d="M4 17.5V20h2.5L17 9.5 14.5 7 4 17.5zM13.5 8.5l2.5 2.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                    Bearbeiten
+                                </a>
+                                <a asp-page="/Packages" asp-page-handler="Download" asp-route-profileId="@profile.Id" class="shell-btn">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg icon-button">
+                                        <path d="M12 4v10m0 0-4-4m4 4 4-4M5 19h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                    ZIP exportieren
+                                </a>
+                                <form method="post" asp-page-handler="DeleteProfile">
+                                    <input type="hidden" name="profileId" value="@profile.Id" />
+                                    <button type="submit" class="shell-btn-warning">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg icon-button">
+                                            <path d="M5 7h14M9 7V5h6v2m-8 0 1 12h8l1-12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                                        </svg>
+                                        Löschen
+                                    </button>
+                                </form>
+                            </div>
+                        </article>
+                    }
+                </div>
+            }
+        </div>
+    </section>
+</div>
+
+<section class="surface-card mt-4">
+    <div class="surface-card-header">
+        <div class="card-heading">
+            <span class="section-icon">
+                <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+                    <path d="M4 6h16v12H4z" fill="none" stroke="currentColor" stroke-width="1.8" />
+                    <path d="M8 10h8M8 14h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                </svg>
+            </span>
+            <div>
+                <div class="eyebrow">Konfiguration</div>
+                <h2 class="section-title">Kundenprofil bearbeiten</h2>
+                <p class="section-subtitle">Die Angaben werden serverseitig gespeichert und beim ZIP-Export automatisch zusammengebaut.</p>
+            </div>
+        </div>
+    </div>
+    <div class="surface-card-body">
+        <form method="post" asp-page-handler="SaveProfile" class="stack-form">
+            <input asp-for="Input.Id" type="hidden" />
+            <div class="form-section-grid">
+                <label class="form-field">
+                    <span>Kunde</span>
+                    <input asp-for="Input.CustomerName" class="shell-input" />
+                </label>
+                <label class="form-field">
+                    <span>Gerätename</span>
+                    <input asp-for="Input.DeviceName" class="shell-input" />
+                </label>
+                <label class="form-field form-field-wide">
+                    <span>Notizen</span>
+                    <textarea asp-for="Input.Notes" class="shell-textarea" rows="2"></textarea>
+                </label>
+                <label class="form-field">
+                    <span>Server-URL</span>
+                    <input asp-for="Input.ServerUrl" class="shell-input" />
+                </label>
+                <label class="form-field">
+                    <span>Registration Shared Key</span>
+                    <input asp-for="Input.RegistrationSharedKey" class="shell-input" />
+                </label>
+                <label class="form-field">
+                    <span>InstallRoot</span>
+                    <input asp-for="Input.InstallRoot" class="shell-input" />
+                </label>
+                <label class="form-field">
+                    <span>ServiceName</span>
+                    <input asp-for="Input.ServiceName" class="shell-input" />
+                </label>
+            </div>
+
+            <div class="form-toggle-grid">
+                <label class="toggle-card"><input asp-for="Input.InstallRustDesk" /> <span>RustDesk mitliefern</span></label>
+                <label class="toggle-card"><input asp-for="Input.InstallTailscale" /> <span>Tailscale mitliefern</span></label>
+                <label class="toggle-card"><input asp-for="Input.EnableAutoApprove" /> <span>Auto-Approve aktivieren</span></label>
+                <label class="toggle-card"><input asp-for="Input.EnableRdp" /> <span>RDP aktivieren</span></label>
+                <label class="toggle-card"><input asp-for="Input.CreateServiceUser" /> <span>Dienstbenutzer anlegen</span></label>
+                <label class="toggle-card"><input asp-for="Input.ServiceUserIsAdministrator" /> <span>Dienstbenutzer als Administrator</span></label>
+                <label class="toggle-card"><input asp-for="Input.Silent" /> <span>Silent-Installation</span></label>
+            </div>
+
+            <div class="form-section-grid">
+                <label class="form-field">
+                    <span>Tailscale Auth Key</span>
+                    <input asp-for="Input.TailscaleAuthKey" class="shell-input" />
+                </label>
+                <label class="form-field">
+                    <span>RustDesk-ID</span>
+                    <input asp-for="Input.RustDeskId" class="shell-input" />
+                </label>
+                <label class="form-field">
+                    <span>RustDesk-Passwort</span>
+                    <input asp-for="Input.RustDeskPassword" class="shell-input" />
+                </label>
+                <label class="form-field">
+                    <span>Dienstbenutzer</span>
+                    <input asp-for="Input.ServiceUserName" class="shell-input" />
+                </label>
+                <label class="form-field">
+                    <span>Dienstbenutzer-Passwort</span>
+                    <input asp-for="Input.ServiceUserPassword" class="shell-input" />
+                </label>
+                <label class="form-field form-field-wide">
+                    <span>Tailscale-IP-Adressen</span>
+                    <textarea asp-for="Input.TailscaleIpAddresses" class="shell-textarea" rows="3" placeholder="100.x.x.x&#10;100.y.y.y"></textarea>
+                </label>
+            </div>
+
+            <div class="action-row">
+                <button type="submit" class="shell-btn">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg icon-button">
+                        <path d="M5 5h11l3 3v11H5z" fill="none" stroke="currentColor" stroke-width="1.8" />
+                        <path d="M8 5v5h7V5M8 19v-5h8v5" fill="none" stroke="currentColor" stroke-width="1.8" />
+                    </svg>
+                    Profil speichern
+                </button>
+                @if (Model.SelectedProfileId.HasValue)
+                {
+                    <a asp-page="/Packages" asp-page-handler="Download" asp-route-profileId="@Model.SelectedProfileId.Value" class="shell-btn-outline">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg icon-button">
+                            <path d="M12 4v10m0 0-4-4m4 4 4-4M5 19h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        Dieses Profil als ZIP exportieren
+                    </a>
+                }
+            </div>
+        </form>
+    </div>
+</section>
+
+<section class="surface-card mt-4">
+    <div class="surface-card-header">
+        <div class="card-heading">
+            <span class="section-icon">
+                <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+                    <path d="M6 4h12v16H6z" fill="none" stroke="currentColor" stroke-width="1.8" />
+                    <path d="M9 9h6M9 13h6M9 17h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                </svg>
+            </span>
+            <div>
+                <div class="eyebrow">Vorschau</div>
+                <h2 class="section-title">Generierte client.installer.config</h2>
+            </div>
+        </div>
+    </div>
+    <div class="surface-card-body">
+        @if (string.IsNullOrWhiteSpace(Model.ConfigPreview))
+        {
+            <div class="empty-state">Die Vorschau erscheint, sobald ein gespeichertes Profil ausgewählt wurde.</div>
+        }
+        else
+        {
+            <pre class="config-preview">@Model.ConfigPreview</pre>
+        }
+    </div>
+</section>

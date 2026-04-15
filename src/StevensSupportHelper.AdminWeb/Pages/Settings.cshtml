@@ -2,49 +2,212 @@
 @model StevensSupportHelper.AdminWeb.Pages.SettingsModel
 @{
     ViewData["Title"] = "Einstellungen";
-    ViewData["Subtitle"] = "Serverprofil, Schnellzugriffe und Konfigurationspunkte für den Supportbetrieb";
+    ViewData["Subtitle"] = "Serverprofil, globale Remote-Daten und Standardwerte für Deployment-Pakete";
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.ActionMessage))
+{
+    <div class="shell-alert @(Model.ActionSucceeded ? "success" : "error")">@Model.ActionMessage</div>
 }
 
 <div class="cards-grid two-col">
     <section class="surface-card">
         <div class="surface-card-header">
-            <div>
-                <div class="eyebrow">Überblick</div>
-                <h2 class="section-title">Plattformübersicht</h2>
+            <div class="card-heading">
+                <span class="section-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+                        <path d="M4 6h16v4H4zm0 8h16v4H4z" fill="none" stroke="currentColor" stroke-width="1.8" />
+                        <circle cx="8" cy="8" r="1.2" fill="currentColor" />
+                        <circle cx="8" cy="16" r="1.2" fill="currentColor" />
+                    </svg>
+                </span>
+                <div>
+                    <div class="eyebrow">Server</div>
+                    <h2 class="section-title">Anwendungs-Einstellungen</h2>
+                    <p class="section-subtitle">Entspricht den bisherigen Einstellungen aus dem lokalen Admin-Client.</p>
+                </div>
             </div>
         </div>
         <div class="surface-card-body">
-            <div class="shell-panel-muted">
-                <strong>StevensSupportHelper Web Admin</strong>
-                <div class="mt-2 text-muted">Browserbasierte Steuerzentrale für Supportsitzungen, Audit-Transparenz und Client-Operationen.</div>
-            </div>
-            <div class="mt-3 detail-list">
-                <dt>Laufzeit</dt>
-                <dd>.NET 10 Razor Pages</dd>
-                <dt>Ziel</dt>
-                <dd>Fernsupport und Clientverwaltung</dd>
-                <dt>Modus</dt>
-                <dd>Web-Administration</dd>
-            </div>
+            <form method="post" asp-page-handler="Save" class="stack-form">
+                <div class="form-section-grid">
+                    <label class="form-field">
+                        <span>Server-URL</span>
+                        <input asp-for="Input.ServerUrl" class="shell-input" />
+                    </label>
+                    <label class="form-field">
+                        <span>API-Key</span>
+                        <input asp-for="Input.ApiKey" class="shell-input" />
+                    </label>
+                    <label class="form-field form-field-wide">
+                        <span>Server-Projektpfad</span>
+                        <input asp-for="Input.ServerProjectPath" class="shell-input" />
+                    </label>
+                </div>
+
+                <div class="surface-subcard">
+                    <div class="subcard-heading">
+                        <span class="subcard-icon">
+                            <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+                                <path d="M7 18V6h10v12M4 18h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                                <path d="M9 10h6M9 14h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                            </svg>
+                        </span>
+                        <div class="mini-title">Remote-Tools und lokale Referenzen</div>
+                    </div>
+                    <div class="form-section-grid mt-3">
+                        <label class="form-field">
+                            <span>RustDesk-Pfad</span>
+                            <input asp-for="Input.RustDeskPath" class="shell-input" />
+                        </label>
+                        <label class="form-field">
+                            <span>Globales RustDesk-Passwort</span>
+                            <input asp-for="Input.RustDeskPassword" class="shell-input" />
+                        </label>
+                        <label class="form-field">
+                            <span>Client-Installer-Pfad</span>
+                            <input asp-for="Input.ClientInstallerPath" class="shell-input" />
+                        </label>
+                        <label class="form-field">
+                            <span>Remote-Actions-Pfad</span>
+                            <input asp-for="Input.RemoteActionsPath" class="shell-input" />
+                        </label>
+                        <label class="form-field form-field-wide">
+                            <span>Package-Generator-Pfad</span>
+                            <input asp-for="Input.PackageGeneratorPath" class="shell-input" />
+                        </label>
+                    </div>
+                </div>
+
+                <div class="surface-subcard">
+                    <div class="subcard-heading">
+                        <span class="subcard-icon">
+                            <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+                                <path d="M12 12a3 3 0 1 0-3-3 3 3 0 0 0 3 3zm-6 7a6 6 0 0 1 12 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                            </svg>
+                        </span>
+                        <div class="mini-title">Globale Remote-Zugangsdaten</div>
+                    </div>
+                    <div class="form-section-grid mt-3">
+                        <label class="form-field">
+                            <span>Globaler Remote-Benutzer</span>
+                            <input asp-for="Input.RemoteUserName" class="shell-input" />
+                        </label>
+                        <label class="form-field">
+                            <span>Globales Remote-Passwort</span>
+                            <input asp-for="Input.RemotePassword" class="shell-input" />
+                        </label>
+                    </div>
+                </div>
+
+                <div class="surface-subcard">
+                    <div class="subcard-heading">
+                        <span class="subcard-icon">
+                            <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+                                <path d="M12 2l8 4v12l-8 4-8-4V6l8-4z" fill="none" stroke="currentColor" stroke-width="1.8" />
+                                <path d="M8 12h8M12 8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                            </svg>
+                        </span>
+                        <div class="mini-title">Standardwerte für neue Kundenpakete</div>
+                    </div>
+                    <div class="form-section-grid mt-3">
+                        <label class="form-field">
+                            <span>Bevorzugter Kanal</span>
+                            <select asp-for="Input.PreferredChannel" class="shell-select">
+                                <option value="Rdp">RDP</option>
+                                <option value="RustDesk">RustDesk</option>
+                                <option value="WinRM">WinRM</option>
+                            </select>
+                        </label>
+                        <label class="form-field">
+                            <span>Standard-Grund</span>
+                            <input asp-for="Input.Reason" class="shell-input" />
+                        </label>
+                        <label class="form-field">
+                            <span>Default Registration Key</span>
+                            <input asp-for="Input.DefaultRegistrationSharedKey" class="shell-input" />
+                        </label>
+                        <label class="form-field">
+                            <span>Standard InstallRoot</span>
+                            <input asp-for="Input.DefaultInstallRoot" class="shell-input" />
+                        </label>
+                        <label class="form-field form-field-wide">
+                            <span>Standard ServiceName</span>
+                            <input asp-for="Input.DefaultServiceName" class="shell-input" />
+                        </label>
+                    </div>
+                </div>
+
+                <div class="action-row">
+                    <button type="submit" class="shell-btn">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg icon-button">
+                            <path d="M5 5h11l3 3v11H5z" fill="none" stroke="currentColor" stroke-width="1.8" />
+                            <path d="M8 5v5h7V5M8 19v-5h8v5" fill="none" stroke="currentColor" stroke-width="1.8" />
+                        </svg>
+                        Einstellungen speichern
+                    </button>
+                    <a asp-page="/Packages" class="shell-btn-outline">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg icon-button">
+                            <path d="M12 2l8 4v12l-8 4-8-4V6l8-4z" fill="none" stroke="currentColor" stroke-width="1.8" />
+                            <path d="M8 12h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                        </svg>
+                        Zum Paketgenerator
+                    </a>
+                </div>
+            </form>
         </div>
     </section>
 
     <section class="surface-card">
         <div class="surface-card-header">
-            <div>
-                <div class="eyebrow">Navigation</div>
-                <h2 class="section-title">Schnellzugriff</h2>
+            <div class="card-heading">
+                <span class="section-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+                        <path d="M12 2l8 4v12l-8 4-8-4V6l8-4z" fill="none" stroke="currentColor" stroke-width="1.8" />
+                        <path d="M12 7v10M7 12h10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                    </svg>
+                </span>
+                <div>
+                    <div class="eyebrow">Assets</div>
+                    <h2 class="section-title">Server-Assets</h2>
+                    <p class="section-subtitle">Status der aktuell auf dem Server gespeicherten Installer-Dateien.</p>
+                </div>
             </div>
         </div>
         <div class="surface-card-body">
-            <div class="action-row">
-                <a class="shell-btn" asp-page="/Dashboard">Client-Dashboard</a>
-                <a class="shell-btn-outline" asp-page="/Users">Benutzerverwaltung</a>
-                <a class="shell-btn-outline" asp-page="/Audit">Audit-Protokoll</a>
-            </div>
-            <div class="shell-panel-muted mt-3">
-                Dieser Bereich ist für Serverkonfiguration, API-Key-Verwaltung, Aufbewahrungsregeln und Betriebsrichtlinien vorbereitet.
-            </div>
+            @if (Model.Assets.Count == 0)
+            {
+                <div class="empty-state">
+                    Noch keine Installer-Dateien hochgeladen. Das erledigst du im Paketgenerator.
+                </div>
+            }
+            else
+            {
+                <div class="asset-status-list">
+                    @foreach (var asset in Model.Assets)
+                    {
+                        <article class="surface-subcard compact">
+                            <div class="asset-heading">
+                                <span class="subcard-icon">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+                                        <path d="M6 4h9l3 3v13H6z" fill="none" stroke="currentColor" stroke-width="1.8" />
+                                        <path d="M9 11h6M9 15h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                                    </svg>
+                                </span>
+                                <div>
+                                    <div class="mini-label">@asset.Kind</div>
+                                    <div class="mini-title mt-2">@asset.OriginalFileName</div>
+                                </div>
+                            </div>
+                            <div class="shell-panel-muted mt-3">
+                                <div><strong>Größe:</strong> @(Math.Round(asset.FileSizeBytes / 1024d / 1024d, 2)) MB</div>
+                                <div><strong>Hochgeladen:</strong> @asset.UploadedAtUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</div>
+                                <div><strong>SHA-256:</strong> @asset.Sha256[..Math.Min(asset.Sha256.Length, 16)]...</div>
+                            </div>
+                        </article>
+                    }
+                </div>
+            }
         </div>
     </section>
 </div>

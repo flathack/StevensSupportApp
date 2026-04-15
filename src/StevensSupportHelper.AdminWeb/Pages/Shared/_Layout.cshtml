@@ -21,7 +21,12 @@
     <div class="app-shell">
         <aside class="shell-sidebar" id="appSidebar">
             <div class="brand-block">
-                <div class="brand-mark">S</div>
+                <div class="brand-mark">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg icon-brand">
+                        <path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6l7-3z" fill="none" stroke="currentColor" stroke-width="1.8" />
+                        <path d="M9 12l2 2 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </div>
                 <div>
                     <div class="brand-title">stevens support</div>
                     <div class="brand-subtitle">community edition</div>
@@ -31,29 +36,63 @@
             <nav class="shell-nav">
                 <div class="nav-group-label">Betrieb</div>
                 <a class="nav-link-shell @(IsActive("/Dashboard") ? "active" : null)" asp-page="/Dashboard">
-                    <span class="nav-icon">D</span>
+                    <span class="nav-icon">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+                            <path d="M4 13h6V4H4v9zm0 7h6v-5H4v5zm10 0h6V11h-6v9zm0-16v5h6V4h-6z" fill="currentColor" />
+                        </svg>
+                    </span>
                     <span>Dashboard</span>
                 </a>
                 <a class="nav-link-shell @(IsActive("/Clients") ? "active" : null)" asp-page="/Dashboard">
-                    <span class="nav-icon">C</span>
+                    <span class="nav-icon">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+                            <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7A2.5 2.5 0 0 1 17.5 16h-4l1.5 2h2a1 1 0 1 1 0 2H7a1 1 0 1 1 0-2h2l1.5-2h-4A2.5 2.5 0 0 1 4 13.5v-7z" fill="none" stroke="currentColor" stroke-width="1.7" />
+                        </svg>
+                    </span>
                     <span>Clientverwaltung</span>
                 </a>
                 <a class="nav-link-shell @(IsActive("/Audit") ? "active" : null)" asp-page="/Audit">
-                    <span class="nav-icon">A</span>
+                    <span class="nav-icon">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+                            <path d="M7 4h10l3 3v13H4V4h3zm1 0v4h8V4" fill="none" stroke="currentColor" stroke-width="1.7" />
+                            <path d="M8 12h8M8 16h5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+                        </svg>
+                    </span>
                     <span>Audit-Protokoll</span>
                 </a>
 
                 <div class="nav-group-label">Administration</div>
                 <a class="nav-link-shell @(IsActive("/Users") ? "active" : null)" asp-page="/Users">
-                    <span class="nav-icon">U</span>
+                    <span class="nav-icon">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+                            <path d="M16 11a3 3 0 1 0-2.999-3A3 3 0 0 0 16 11zm-8 1a3 3 0 1 0-3-3 3 3 0 0 0 3 3zm0 2c-2.2 0-4 1.2-4 2.7V19h8v-2.3C12 15.2 10.2 14 8 14zm8-1c-1.2 0-2.3.3-3.1.9 1 .8 1.6 1.8 1.6 2.8V19H20v-1.6c0-1.8-1.8-3.4-4-3.4z" fill="currentColor" />
+                        </svg>
+                    </span>
                     <span>Benutzerverwaltung</span>
                 </a>
                 <a class="nav-link-shell @(IsActive("/Settings") ? "active" : null)" asp-page="/Settings">
-                    <span class="nav-icon">S</span>
+                    <span class="nav-icon">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+                            <path d="M19.4 13a7.7 7.7 0 0 0 .1-1 7.7 7.7 0 0 0-.1-1l2.1-1.6-2-3.5-2.5 1a8.6 8.6 0 0 0-1.7-1L13 2h-4l-.3 2.9a8.6 8.6 0 0 0-1.7 1l-2.5-1-2 3.5L4.6 11a7.7 7.7 0 0 0-.1 1 7.7 7.7 0 0 0 .1 1l-2.1 1.6 2 3.5 2.5-1a8.6 8.6 0 0 0 1.7 1L9 22h4l.3-2.9a8.6 8.6 0 0 0 1.7-1l2.5 1 2-3.5L19.4 13zM12 15.2A3.2 3.2 0 1 1 15.2 12 3.2 3.2 0 0 1 12 15.2z" fill="currentColor" />
+                        </svg>
+                    </span>
                     <span>Einstellungen</span>
                 </a>
+                <a class="nav-link-shell @(IsActive("/Packages") ? "active" : null)" asp-page="/Packages">
+                    <span class="nav-icon">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+                            <path d="M12 2l8 4v12l-8 4-8-4V6l8-4zm0 2.2L6.2 7 12 9.8 17.8 7 12 4.2zm-6 4.4v8l5 2.5v-8L6 8.6zm7 10.5l5-2.5v-8l-5 2.5v8z" fill="currentColor" />
+                        </svg>
+                    </span>
+                    <span>Paketgenerator</span>
+                </a>
                 <a class="nav-link-shell @(IsActive("/Privacy") ? "active" : null)" asp-page="/Privacy">
-                    <span class="nav-icon">P</span>
+                    <span class="nav-icon">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg">
+                            <path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6l7-3z" fill="none" stroke="currentColor" stroke-width="1.8" />
+                            <path d="M12 10a2 2 0 0 1 2 2v3h-4v-3a2 2 0 0 1 2-2z" fill="none" stroke="currentColor" stroke-width="1.8" />
+                        </svg>
+                    </span>
                     <span>Sicherheit</span>
                 </a>
             </nav>
@@ -90,8 +129,14 @@
                         <span class="user-avatar">@displayName[..1].ToUpperInvariant()</span>
                         <span>@displayName</span>
                     </div>
-                    <form method="post" action="/Dashboard?handler=Logout" class="d-inline">
-                        <button type="submit" class="btn shell-ghost-btn">Abmelden</button>
+                    <form method="post" asp-page="/Dashboard" asp-page-handler="Logout" class="d-inline">
+                        <button type="submit" class="btn shell-ghost-btn">
+                            <svg viewBox="0 0 24 24" aria-hidden="true" class="icon-svg icon-button">
+                                <path d="M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4" fill="none" stroke="currentColor" stroke-width="1.8" />
+                                <path d="M13 16l4-4-4-4M8 12h9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            Abmelden
+                        </button>
                     </form>
                 </div>
             </header>

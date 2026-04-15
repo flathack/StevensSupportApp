@@ -13,9 +13,11 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS adminweb-builder
 WORKDIR /src
 
 COPY src/StevensSupportHelper.AdminWeb/StevensSupportHelper.AdminWeb.csproj ./StevensSupportHelper.AdminWeb/
+COPY src/StevensSupportHelper.Shared/StevensSupportHelper.Shared.csproj ./StevensSupportHelper.Shared/
 RUN dotnet restore StevensSupportHelper.AdminWeb/StevensSupportHelper.AdminWeb.csproj
 
 COPY src/StevensSupportHelper.AdminWeb/ ./StevensSupportHelper.AdminWeb/
+COPY src/StevensSupportHelper.Shared/ ./StevensSupportHelper.Shared/
 WORKDIR /src/StevensSupportHelper.AdminWeb
 RUN dotnet publish -c Release -o /app/adminweb
 

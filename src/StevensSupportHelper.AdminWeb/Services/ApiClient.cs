@@ -40,6 +40,9 @@ public sealed class ApiClient
     public async Task<UserInfoResponse?> GetCurrentUserAsync()
         => await GetAsync<UserInfoResponse>("/api/auth/me");
 
+    public async Task<AdminSessionInfoResponse?> GetAdminSessionAsync()
+        => await GetAsync<AdminSessionInfoResponse>("/api/admin/session");
+
     public async Task<List<UserInfoResponse>?> GetUsersAsync()
         => await GetAsync<List<UserInfoResponse>>("/api/auth/users");
 
@@ -173,6 +176,11 @@ public sealed class ApiClient
         => await PostAsJsonAsync<QueueAgentJobResponse>(
             $"/api/admin/clients/{clientId}/agent-jobs/script-execution",
             new { ScriptContent = scriptContent });
+
+    public async Task<QueueAgentJobResponse?> ExecuteRemoteActionAsync(Guid clientId, string actionName)
+        => await PostAsJsonAsync<QueueAgentJobResponse>(
+            $"/api/admin/clients/{clientId}/agent-jobs/remote-action",
+            new { Name = actionName });
 
     public async Task<QueueAgentJobResponse?> QueuePowerPlanSnapshotAsync(Guid clientId)
         => await PostAsync<QueueAgentJobResponse>($"/api/admin/clients/{clientId}/agent-jobs/power-plan-snapshot");

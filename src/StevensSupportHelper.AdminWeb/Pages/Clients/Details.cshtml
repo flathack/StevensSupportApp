@@ -3,11 +3,11 @@
 @model StevensSupportHelper.AdminWeb.Pages.Clients.DetailsModel
 @{
     ViewData["Title"] = "Clientverwaltung";
-    ViewData["Subtitle"] = "Support, Transfers, Agent-Jobs und Metadaten für einen einzelnen Client";
+    ViewData["Subtitle"] = "Support, Transfers, Agent-Jobs und Metadaten fÃ¼r einen einzelnen Client";
 }
 
 @section HeaderActions {
-    <a class="shell-btn-outline" asp-page="/Dashboard">Zurück zum Dashboard</a>
+    <a class="shell-btn-outline" asp-page="/Dashboard">ZurÃ¼ck zum Dashboard</a>
 }
 
 @if (Model.Client is null)
@@ -19,6 +19,11 @@
 @if (!string.IsNullOrEmpty(Model.ActionMessage))
 {
     <div class="shell-alert @(Model.IsActionError ? "error" : "success")">@Model.ActionMessage</div>
+}
+
+@if (Model.IsUsingDemoClient)
+{
+    <div class="shell-alert">Demo-Modus aktiv: Dieser Client ist ein Beispielgerät zum Testen der Oberfläche.</div>
 }
 
 <section class="surface-card mb-4">
@@ -35,7 +40,7 @@
             <div class="surface-subcard compact"><div class="mini-label">Benutzer</div><div class="mini-value">@Model.Client.CurrentUser</div></div>
             <div class="surface-subcard compact"><div class="mini-label">Agent</div><div class="mini-value">@Model.Client.AgentVersion</div></div>
             <div class="surface-subcard compact"><div class="mini-label">Zuletzt gesehen</div><div class="mini-value">@Model.Client.LastSeenAtUtc.ToLocalTime().ToString("g")</div></div>
-            <div class="surface-subcard compact"><div class="mini-label">Kanäle</div><div class="mini-value">@((Model.Client.SupportedChannels?.Count ?? 0) == 0 ? "-" : string.Join(", ", Model.Client.SupportedChannels!))</div></div>
+            <div class="surface-subcard compact"><div class="mini-label">KanÃ¤le</div><div class="mini-value">@((Model.Client.SupportedChannels?.Count ?? 0) == 0 ? "-" : string.Join(", ", Model.Client.SupportedChannels!))</div></div>
         </div>
     </div>
 </section>
@@ -44,8 +49,8 @@
     <div class="surface-card-header">
         <div>
             <div class="eyebrow">Funktionen</div>
-            <h2 class="section-title">Arbeitsbereich öffnen</h2>
-            <p class="section-subtitle">Mehrere Bereiche lassen sich parallel als Tabs öffnen.</p>
+            <h2 class="section-title">Arbeitsbereich Ã¶ffnen</h2>
+            <p class="section-subtitle">Mehrere Bereiche lassen sich parallel als Tabs Ã¶ffnen.</p>
         </div>
     </div>
     <div class="surface-card-body">
@@ -67,10 +72,10 @@
         <input type="hidden" id="clientActiveTabState" value="@Model.ActiveTabKey" />
         <div class="workspace-tabs" id="clientWorkspaceTabs"></div>
         <div class="workspace-panels">
-            <section class="workspace-panel" data-workspace-panel="overview" data-tab-label="Übersicht">
+            <section class="workspace-panel" data-workspace-panel="overview" data-tab-label="Ãœbersicht">
                 <div class="cards-grid two-col">
                     <div class="surface-subcard">
-                        <h3 class="mini-title">Geräteinformationen</h3>
+                        <h3 class="mini-title">GerÃ¤teinformationen</h3>
                         <dl class="detail-list">
                             <dt>Hostname</dt><dd>@Model.Client.MachineName</dd>
                             <dt>Client-ID</dt><dd>@Model.Client.ClientId</dd>
@@ -154,7 +159,7 @@
                     <form method="post" asp-page-handler="ExecuteScript" class="stack-form">
                         <input type="hidden" asp-for="ClientId" /><input type="hidden" asp-for="OpenTabsState" class="tab-state-input" /><input type="hidden" asp-for="ActiveTabKey" class="tab-active-input" />
                         <label class="form-field"><span>Skriptinhalt</span><textarea asp-for="ScriptContent" class="shell-textarea" rows="8"></textarea></label>
-                        <button type="submit" class="shell-btn-warning">Skript ausführen</button>
+                        <button type="submit" class="shell-btn-warning">Skript ausfÃ¼hren</button>
                     </form>
                 </div>
             </section>
@@ -190,25 +195,32 @@
                 </div>
                 <div class="surface-subcard mt-3">
                     <h3 class="mini-title">Letzter Transfer</h3>
-                    @if (Model.LatestTransfer is null)
+                    @if (Model.LatestTransferPresentation is null)
                     {
-                        <div class="shell-panel-muted">Noch kein Datei-Transfer ausgewählt.</div>
+                        <div class="shell-panel-muted">Noch kein Datei-Transfer ausgewÃ¤hlt.</div>
                     }
                     else
                     {
                         <dl class="detail-list">
-                            <dt>Transfer-ID</dt><dd>@Model.LatestTransfer.TransferId</dd>
-                            <dt>Datei</dt><dd>@Model.LatestTransfer.FileName</dd>
-                            <dt>Richtung</dt><dd>@Model.LatestTransfer.Direction</dd>
-                            <dt>Status</dt><dd>@Model.LatestTransfer.Status</dd>
+                            @foreach (var item in Model.LatestTransferPresentation.Details)
+                            {
+                                <dt>@item.Label</dt><dd>@item.Value</dd>
+                            }
                         </dl>
                         <div class="action-row mt-3">
                             <form method="post" asp-page-handler="RefreshTransfer"><input type="hidden" asp-for="ClientId" /><input type="hidden" asp-for="LatestTransferId" /><input type="hidden" asp-for="OpenTabsState" class="tab-state-input" /><input type="hidden" asp-for="ActiveTabKey" class="tab-active-input" /><button type="submit" class="shell-btn-outline">Status aktualisieren</button></form>
                             @if (Model.LatestTransferContent is not null)
                             {
-                                <a asp-page-handler="DownloadTransferContent" asp-route-clientId="@Model.Client.ClientId" asp-route-transferId="@Model.LatestTransfer.TransferId" class="shell-btn">Inhalt herunterladen</a>
+                                <a asp-page-handler="DownloadTransferContent" asp-route-clientId="@Model.Client!.ClientId" asp-route-transferId="@Model.LatestTransfer!.TransferId" class="shell-btn">Inhalt herunterladen</a>
                             }
                         </div>
+                        @if (!string.IsNullOrWhiteSpace(Model.LatestTransferPresentation.PreviewText))
+                        {
+                            <div class="job-result-card mt-3">
+                                <div class="mini-label">Textvorschau</div>
+                                <pre class="config-preview mt-3">@Model.LatestTransferPresentation.PreviewText</pre>
+                            </div>
+                        }
                     }
                 </div>
             </section>
@@ -217,20 +229,60 @@
                 <div class="surface-subcard">
                     <h3 class="mini-title">Agent-Jobs</h3>
                     <div class="action-row"><form method="post" asp-page-handler="QueueProcessSnapshot"><input type="hidden" asp-for="ClientId" /><input type="hidden" asp-for="OpenTabsState" class="tab-state-input" /><input type="hidden" asp-for="ActiveTabKey" class="tab-active-input" /><button type="submit" class="shell-btn-outline">Prozess-Snapshot anfordern</button></form></div>
-                    @if (Model.LatestAgentJob is null)
+                    @if (Model.LatestJobPresentation is null)
                     {
-                        <div class="shell-panel-muted mt-3">Noch kein Agent-Job ausgewählt.</div>
+                        <div class="shell-panel-muted mt-3">Noch kein Agent-Job ausgewÃ¤hlt.</div>
                     }
                     else
                     {
                         <dl class="detail-list mt-3">
-                            <dt>Job-ID</dt><dd>@Model.LatestAgentJob.JobId</dd>
-                            <dt>Typ</dt><dd>@Model.LatestAgentJob.JobType</dd>
-                            <dt>Status</dt><dd>@Model.LatestAgentJob.Status</dd>
+                            @foreach (var item in Model.LatestJobPresentation.Details)
+                            {
+                                <dt>@item.Label</dt><dd>@item.Value</dd>
+                            }
                         </dl>
-                        @if (!string.IsNullOrWhiteSpace(Model.LatestAgentJob.ResultJson))
+                        @foreach (var table in Model.LatestJobPresentation.Tables)
                         {
-                            <pre class="config-preview mt-3">@Model.LatestAgentJob.ResultJson</pre>
+                            <div class="job-result-card mt-3">
+                                <div class="mini-label">@table.Title</div>
+                                <div class="shell-table-wrap mt-3">
+                                    <table class="shell-table result-table">
+                                        <thead>
+                                            <tr>
+                                                @foreach (var column in table.Columns)
+                                                {
+                                                    <th>@column</th>
+                                                }
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var row in table.Rows)
+                                            {
+                                                <tr>
+                                                    @foreach (var cell in row)
+                                                    {
+                                                        <td>@cell</td>
+                                                    }
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        }
+                        @foreach (var block in Model.LatestJobPresentation.TextBlocks)
+                        {
+                            <div class="job-result-card mt-3">
+                                <div class="mini-label">@block.Title</div>
+                                <pre class="config-preview mt-3">@block.Content</pre>
+                            </div>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(Model.LatestJobPresentation.RawJson))
+                        {
+                            <div class="job-result-card mt-3">
+                                <div class="mini-label">Rohdaten</div>
+                                <pre class="config-preview mt-3">@Model.LatestJobPresentation.RawJson</pre>
+                            </div>
                         }
                     }
                     <form method="post" asp-page-handler="RefreshJob" class="action-row mt-3"><input type="hidden" asp-for="ClientId" /><input type="hidden" asp-for="LatestJobId" /><input type="hidden" asp-for="OpenTabsState" class="tab-state-input" /><input type="hidden" asp-for="ActiveTabKey" class="tab-active-input" /><button type="submit" class="shell-btn-outline">Letzten Job aktualisieren</button></form>
@@ -239,13 +291,13 @@
 
             <section class="workspace-panel" data-workspace-panel="services" data-tab-label="Dienste">
                 <div class="surface-subcard">
-                    <h3 class="mini-title">Dienste prüfen und steuern</h3>
+                    <h3 class="mini-title">Dienste prÃ¼fen und steuern</h3>
                     <div class="action-row"><form method="post" asp-page-handler="QueueServiceSnapshot"><input type="hidden" asp-for="ClientId" /><input type="hidden" asp-for="OpenTabsState" class="tab-state-input" /><input type="hidden" asp-for="ActiveTabKey" class="tab-active-input" /><button type="submit" class="shell-btn-outline">Service-Snapshot anfordern</button></form></div>
                     <form method="post" asp-page-handler="QueueServiceControl" class="stack-form mt-3">
                         <input type="hidden" asp-for="ClientId" /><input type="hidden" asp-for="OpenTabsState" class="tab-state-input" /><input type="hidden" asp-for="ActiveTabKey" class="tab-active-input" />
                         <label class="form-field"><span>Dienstname</span><input asp-for="ServiceName" class="shell-input" /></label>
                         <label class="form-field"><span>Aktion</span><select asp-for="ServiceAction" class="shell-select"><option value="start">Start</option><option value="stop">Stop</option><option value="restart">Restart</option></select></label>
-                        <button type="submit" class="shell-btn">Service-Aktion ausführen</button>
+                        <button type="submit" class="shell-btn">Service-Aktion ausfÃ¼hren</button>
                     </form>
                 </div>
             </section>
@@ -263,8 +315,8 @@
 
             <section class="workspace-panel" data-workspace-panel="power" data-tab-label="Energie">
                 <div class="surface-subcard">
-                    <h3 class="mini-title">Power-Pläne</h3>
-                    <div class="action-row"><form method="post" asp-page-handler="QueuePowerSnapshot"><input type="hidden" asp-for="ClientId" /><input type="hidden" asp-for="OpenTabsState" class="tab-state-input" /><input type="hidden" asp-for="ActiveTabKey" class="tab-active-input" /><button type="submit" class="shell-btn-outline">Power-Pläne abrufen</button></form></div>
+                    <h3 class="mini-title">Power-PlÃ¤ne</h3>
+                    <div class="action-row"><form method="post" asp-page-handler="QueuePowerSnapshot"><input type="hidden" asp-for="ClientId" /><input type="hidden" asp-for="OpenTabsState" class="tab-state-input" /><input type="hidden" asp-for="ActiveTabKey" class="tab-active-input" /><button type="submit" class="shell-btn-outline">Power-PlÃ¤ne abrufen</button></form></div>
                     <form method="post" asp-page-handler="QueuePowerActivate" class="stack-form mt-3">
                         <input type="hidden" asp-for="ClientId" /><input type="hidden" asp-for="OpenTabsState" class="tab-state-input" /><input type="hidden" asp-for="ActiveTabKey" class="tab-active-input" />
                         <label class="form-field"><span>Power-Plan-GUID</span><input asp-for="PowerPlanGuid" class="shell-input" /></label>
@@ -322,9 +374,33 @@
                         <div class="remote-action-list">
                             @foreach (var action in Model.RemoteActions)
                             {
-                                <div class="surface-subcard compact"><div class="mini-title">@action.Name</div><div class="section-subtitle">@action.Description</div><div class="text-muted">Erhöhte Rechte: @(action.RequiresElevation ? "Ja" : "Nein")</div></div>
+                                <form method="post" asp-page-handler="ExecuteRemoteAction" class="surface-subcard compact stack-form">
+                                    <input type="hidden" asp-for="ClientId" />
+                                    <input type="hidden" asp-for="OpenTabsState" class="tab-state-input" />
+                                    <input type="hidden" asp-for="ActiveTabKey" class="tab-active-input" />
+                                    <input type="hidden" asp-for="RemoteActionName" value="@action.Name" />
+                                    <div class="mini-title">@action.Name</div>
+                                    <div class="section-subtitle">@action.Description</div>
+                                    <div class="text-muted">Erhöhte Rechte: @(action.RequiresElevation ? "Ja" : "Nein")</div>
+                                    <button type="submit" class="shell-btn mt-3">Aktion starten</button>
+                                </form>
                             }
                         </div>
+                        @if (Model.LatestAgentJob is not null)
+                        {
+                            <div class="job-result-card mt-3">
+                                <div class="mini-label">Letzter Job</div>
+                                <div class="mini-value">@Model.LatestAgentJob.JobType - @Model.LatestAgentJob.Status</div>
+                                @if (Model.LatestJobPresentation?.TextBlocks.Count > 0)
+                                {
+                                    <pre class="config-preview mt-3">@Model.LatestJobPresentation.TextBlocks[0].Content</pre>
+                                }
+                                else if (!string.IsNullOrWhiteSpace(Model.LatestJobPresentation?.RawJson))
+                                {
+                                    <pre class="config-preview mt-3">@Model.LatestJobPresentation.RawJson</pre>
+                                }
+                            </div>
+                        }
                     }
                 </div>
             </section>

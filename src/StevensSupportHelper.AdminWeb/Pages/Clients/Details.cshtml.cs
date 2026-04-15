@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using StevensSupportHelper.AdminWeb.Services;
@@ -8,6 +9,7 @@ namespace StevensSupportHelper.AdminWeb.Pages.Clients;
 
 public sealed class DetailsModel : PageModel
 {
+    private const string DemoModeSessionKey = "AdminWeb.DemoModeEnabled";
     private readonly ApiClient _apiClient;
     private readonly DemoClientDataService _demoClientDataService;
 
@@ -40,6 +42,9 @@ public sealed class DetailsModel : PageModel
 
     [BindProperty]
     public string ScriptContent { get; set; } = "Get-ComputerInfo | Select-Object CsName, WindowsVersion, OsArchitecture";
+
+    [BindProperty]
+    public string RemoteActionName { get; set; } = string.Empty;
 
     [BindProperty]
     public string ChatMessage { get; set; } = string.Empty;
@@ -85,7 +90,9 @@ public sealed class DetailsModel : PageModel
     public List<ChatMessageDto> ChatMessages { get; set; } = [];
     public FileTransferDto? LatestTransfer { get; set; }
     public FileTransferContentResponse? LatestTransferContent { get; set; }
+    public FileTransferPresentation? LatestTransferPresentation { get; set; }
     public AgentJobDto? LatestAgentJob { get; set; }
+    public AgentJobPresentation? LatestJobPresentation { get; set; }
     public string? ActionMessage { get; set; }
     public bool IsActionError { get; set; }
     public bool IsUsingDemoClient { get; set; }
@@ -108,7 +115,7 @@ public sealed class DetailsModel : PageModel
         new("power", "Energie", "Power-Pläne prüfen"),
         new("windows-updates", "Windows-Updates", "Update-Jobs steuern"),
         new("chat", "Chat", "Mit dem Client schreiben"),
-        new("remote-actions", "Remote Actions", "Skriptkatalog ansehen"),
+        new("remote-actions", "Remote Actions", "Skripte direkt auf dem Client ausführen"),
         new("edit-client", "Client bearbeiten", "Metadaten pflegen"),
         new("end-session", "Sitzung beenden", "Aktive Sitzung schließen")
     ];
@@ -348,6 +355,19 @@ public sealed class DetailsModel : PageModel
     public async Task<IActionResult> OnPostExecuteScriptAsync()
         => await QueueJobAsync("ps-console", () => _apiClient.QueueScriptExecutionAsync(ClientId, ScriptContent), "Demo-Modus: PowerShell-Skript wurde simuliert an den Agenten gesendet.");
 
+    public async Task<IActionResult> OnPostExecuteRemoteActionAsync()
+    {
+        if (string.IsNullOrWhiteSpace(RemoteActionName))
+        {
+            return await FailAndReloadAsync("Bitte wähle zuerst eine Remote Action aus.");
+        }
+
+        return await QueueJobAsync(
+            "remote-actions",
+            () => _apiClient.ExecuteRemoteActionAsync(ClientId, RemoteActionName),
+            $"Demo-Modus: Remote Action '{RemoteActionName}' wurde simuliert an den Agenten gesendet.");
+    }
+
     public async Task<IActionResult> OnPostRefreshJobAsync()
     {
         if (!TryPrepareAuthenticatedRequest("tasks", out _, out var redirect))
@@ -429,12 +449,19 @@ public sealed class DetailsModel : PageModel
             ChatMessages = await _apiClient.GetChatMessagesAsync(ClientId) ?? [];
             IsUsingDemoClient = false;
         }
-        else
+        else if (IsDemoModeEnabled())
         {
             Client = _demoClientDataService.GetClient(ClientId);
             RemoteActions = _demoClientDataService.GetRemoteActions().ToList();
             ChatMessages = [];
             IsUsingDemoClient = Client is not null;
+        }
+        else
+        {
+            Client = null;
+            RemoteActions = [];
+            ChatMessages = [];
+            IsUsingDemoClient = false;
         }
 
         if (Client is null)
@@ -457,6 +484,9 @@ public sealed class DetailsModel : PageModel
             LatestAgentJob = await _apiClient.GetAgentJobAsync(jobId);
         }
 
+        LatestTransferPresentation = BuildTransferPresentation(LatestTransfer, LatestTransferContent);
+        LatestJobPresentation = BuildJobPresentation(LatestAgentJob);
+
         Notes = Client.Notes ?? string.Empty;
         RustDeskId = Client.RustDeskId ?? string.Empty;
         RustDeskPassword = Client.RustDeskPassword ?? string.Empty;
@@ -474,6 +504,9 @@ public sealed class DetailsModel : PageModel
 
     private bool IsDemoClientRequest()
         => _demoClientDataService.GetClient(ClientId) is not null && IsUsingDemoClient;
+
+    private bool IsDemoModeEnabled()
+        => string.Equals(HttpContext.Session.GetString(DemoModeSessionKey), bool.TrueString, StringComparison.OrdinalIgnoreCase);
 
     private bool TryPrepareAuthenticatedRequest(string targetTab, out string? displayName, out IActionResult? redirect)
     {
@@ -539,6 +572,277 @@ public sealed class DetailsModel : PageModel
 
         return builder.ToString();
     }
+
+    private static FileTransferPresentation? BuildTransferPresentation(FileTransferDto? transfer, FileTransferContentResponse? content)
+    {
+        if (transfer is null)
+        {
+            return null;
+        }
+
+        var details = new List<PresentationItem>
+        {
+            new("Transfer-ID", transfer.TransferId.ToString()),
+            new("Datei", transfer.FileName),
+            new("Pfad", transfer.RelativePath),
+            new("Richtung", transfer.Direction.ToString()),
+            new("Status", transfer.Status),
+            new("Angefordert", transfer.RequestedAtUtc.ToLocalTime().ToString("g"))
+        };
+
+        if (transfer.CompletedAtUtc is not null)
+        {
+            details.Add(new("Abgeschlossen", transfer.CompletedAtUtc.Value.ToLocalTime().ToString("g")));
+        }
+
+        if (!string.IsNullOrWhiteSpace(transfer.ErrorMessage))
+        {
+            details.Add(new("Fehler", transfer.ErrorMessage));
+        }
+
+        string? preview = null;
+        if (content is not null && !string.IsNullOrWhiteSpace(content.ContentBase64))
+        {
+            try
+            {
+                var bytes = Convert.FromBase64String(content.ContentBase64);
+                details.Add(new("Inhaltsgröße", $"{bytes.Length:N0} Bytes"));
+                if (TryDecodeText(bytes, out var decodedText))
+                {
+                    preview = decodedText.Length > 4000
+                        ? decodedText[..4000] + Environment.NewLine + "..." 
+                        : decodedText;
+                }
+            }
+            catch
+            {
+                details.Add(new("Inhalt", "Der Transferinhalt konnte nicht dekodiert werden."));
+            }
+        }
+
+        return new FileTransferPresentation(details, preview);
+    }
+
+    private static AgentJobPresentation? BuildJobPresentation(AgentJobDto? job)
+    {
+        if (job is null)
+        {
+            return null;
+        }
+
+        var details = new List<PresentationItem>
+        {
+            new("Job-ID", job.JobId.ToString()),
+            new("Typ", job.JobType.ToString()),
+            new("Status", job.Status),
+            new("Angefordert", job.RequestedAtUtc.ToLocalTime().ToString("g"))
+        };
+
+        if (job.CompletedAtUtc is not null)
+        {
+            details.Add(new("Abgeschlossen", job.CompletedAtUtc.Value.ToLocalTime().ToString("g")));
+        }
+
+        if (!string.IsNullOrWhiteSpace(job.ErrorMessage))
+        {
+            details.Add(new("Fehler", job.ErrorMessage));
+        }
+
+        var presentation = new AgentJobPresentation(details, []);
+        if (string.IsNullOrWhiteSpace(job.ResultJson))
+        {
+            return presentation;
+        }
+
+        try
+        {
+            switch (job.JobType)
+            {
+                case AgentJobType.ProcessSnapshot:
+                    var processSnapshot = JsonSerializer.Deserialize<AgentProcessSnapshotResult>(job.ResultJson);
+                    if (processSnapshot is not null)
+                    {
+                        presentation.Details.Add(new("CPU", $"{processSnapshot.Summary.CpuPercent:F1} %"));
+                        presentation.Details.Add(new("RAM", $"{processSnapshot.Summary.UsedMemoryGb:F1} / {processSnapshot.Summary.TotalMemoryGb:F1} GB"));
+                        presentation.Details.Add(new("Prozesse", processSnapshot.Summary.ProcessCount.ToString()));
+                        presentation.Tables.Add(new PresentationTable(
+                            "Prozessliste",
+                            ["Name", "PID", "Fenster", "RAM (MB)", "CPU (s)"],
+                            processSnapshot.Processes
+                                .OrderByDescending(process => process.WorkingSetMb)
+                                .Take(20)
+                                .Select(process => new[]
+                                {
+                                    process.ProcessName,
+                                    process.Id.ToString(),
+                                    string.IsNullOrWhiteSpace(process.MainWindowTitle) ? "-" : process.MainWindowTitle,
+                                    process.WorkingSetMb.ToString("F1"),
+                                    process.CpuSeconds?.ToString("F1") ?? "-"
+                                })
+                                .ToList()));
+                    }
+                    break;
+                case AgentJobType.WindowsUpdateScan:
+                    var updates = JsonSerializer.Deserialize<AgentWindowsUpdateScanResult>(job.ResultJson);
+                    if (updates is not null)
+                    {
+                        presentation.Details.Add(new("Gefundene Updates", updates.Updates.Count.ToString()));
+                        presentation.Tables.Add(new PresentationTable(
+                            "Update-Liste",
+                            ["Titel", "KB", "Kategorien", "Download", "Max. Größe"],
+                            updates.Updates.Select(update => new[]
+                            {
+                                update.Title,
+                                string.IsNullOrWhiteSpace(update.KbArticleIds) ? "-" : update.KbArticleIds,
+                                update.Categories,
+                                update.IsDownloaded ? "Ja" : "Nein",
+                                update.MaxDownloadSizeBytes > 0 ? $"{update.MaxDownloadSizeBytes / 1024d / 1024d:F1} MB" : "-"
+                            }).ToList()));
+                    }
+                    break;
+                case AgentJobType.WindowsUpdateInstall:
+                    var installResult = JsonSerializer.Deserialize<AgentWindowsUpdateInstallResult>(job.ResultJson);
+                    if (installResult is not null)
+                    {
+                        presentation.TextBlocks.Add(new PresentationTextBlock("Installationsmeldung", installResult.Message));
+                    }
+                    break;
+                case AgentJobType.RegistrySnapshot:
+                    var registryResult = JsonSerializer.Deserialize<AgentRegistrySnapshotResult>(job.ResultJson);
+                    if (registryResult is not null)
+                    {
+                        presentation.Details.Add(new("Unterschlüssel", registryResult.SubKeys.Count.ToString()));
+                        presentation.Details.Add(new("Werte", registryResult.Values.Count.ToString()));
+                        if (registryResult.SubKeys.Count > 0)
+                        {
+                            presentation.Tables.Add(new PresentationTable(
+                                "Unterschlüssel",
+                                ["Name"],
+                                registryResult.SubKeys.Select(subKey => new[] { subKey }).ToList()));
+                        }
+
+                        if (registryResult.Values.Count > 0)
+                        {
+                            presentation.Tables.Add(new PresentationTable(
+                                "Werte",
+                                ["Name", "Typ", "Wert"],
+                                registryResult.Values.Select(value => new[]
+                                {
+                                    value.Name,
+                                    value.Kind,
+                                    value.Value
+                                }).ToList()));
+                        }
+                    }
+                    break;
+                case AgentJobType.ServiceSnapshot:
+                    var services = JsonSerializer.Deserialize<AgentServiceSnapshotResult>(job.ResultJson);
+                    if (services is not null)
+                    {
+                        presentation.Details.Add(new("Dienste", services.Services.Count.ToString()));
+                        presentation.Tables.Add(new PresentationTable(
+                            "Dienststatus",
+                            ["Name", "Anzeigename", "Status", "Starttyp", "Stop möglich"],
+                            services.Services.Select(service => new[]
+                            {
+                                service.Name,
+                                service.DisplayName,
+                                service.Status,
+                                service.StartType,
+                                service.CanStop ? "Ja" : "Nein"
+                            }).ToList()));
+                    }
+                    break;
+                case AgentJobType.ServiceControl:
+                    var controlResult = JsonSerializer.Deserialize<AgentServiceControlResult>(job.ResultJson);
+                    if (controlResult is not null)
+                    {
+                        presentation.TextBlocks.Add(new PresentationTextBlock("Dienstaktion", controlResult.Message));
+                    }
+                    break;
+                case AgentJobType.ScriptExecution:
+                    var scriptResult = JsonSerializer.Deserialize<AgentScriptExecutionResult>(job.ResultJson);
+                    if (scriptResult is not null)
+                    {
+                        presentation.Details.Add(new("Exit-Code", scriptResult.ExitCode.ToString()));
+                        presentation.Details.Add(new("Host", scriptResult.HostApplication));
+                        if (!string.IsNullOrWhiteSpace(scriptResult.Output))
+                        {
+                            presentation.TextBlocks.Add(new PresentationTextBlock("Standardausgabe", scriptResult.Output));
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(scriptResult.ErrorOutput))
+                        {
+                            presentation.TextBlocks.Add(new PresentationTextBlock("Fehlerausgabe", scriptResult.ErrorOutput));
+                        }
+                    }
+                    break;
+                case AgentJobType.PowerPlanSnapshot:
+                    var plans = JsonSerializer.Deserialize<AgentPowerPlanSnapshotResult>(job.ResultJson);
+                    if (plans is not null)
+                    {
+                        presentation.Tables.Add(new PresentationTable(
+                            "Power-Pläne",
+                            ["GUID", "Name", "Aktiv"],
+                            plans.Plans.Select(plan => new[]
+                            {
+                                plan.Guid,
+                                plan.Name,
+                                plan.IsActive ? "Ja" : "Nein"
+                            }).ToList()));
+                    }
+                    break;
+                case AgentJobType.PowerPlanActivate:
+                    var activateResult = JsonSerializer.Deserialize<AgentPowerPlanActivateResult>(job.ResultJson);
+                    if (activateResult is not null)
+                    {
+                        presentation.TextBlocks.Add(new PresentationTextBlock("Power-Plan", activateResult.Message));
+                    }
+                    break;
+            }
+        }
+        catch
+        {
+            presentation.RawJson = job.ResultJson;
+            return presentation;
+        }
+
+        if (presentation.Tables.Count == 0 && presentation.TextBlocks.Count == 0)
+        {
+            presentation.RawJson = job.ResultJson;
+        }
+
+        return presentation;
+    }
+
+    private static bool TryDecodeText(byte[] bytes, out string decodedText)
+    {
+        decodedText = string.Empty;
+        if (bytes.Length == 0)
+        {
+            return false;
+        }
+
+        try
+        {
+            decodedText = new UTF8Encoding(false, true).GetString(bytes);
+            var suspiciousControls = decodedText.Count(character => char.IsControl(character) && character is not '\r' and not '\n' and not '\t');
+            return suspiciousControls < Math.Max(3, decodedText.Length / 20);
+        }
+        catch
+        {
+            return false;
+        }
+    }
 }
 
 public sealed record ClientToolDefinition(string Key, string Label, string Description);
+public sealed record PresentationItem(string Label, string Value);
+public sealed record PresentationTable(string Title, IReadOnlyList<string> Columns, IReadOnlyList<IReadOnlyList<string>> Rows);
+public sealed record PresentationTextBlock(string Title, string Content);
+public sealed record FileTransferPresentation(IReadOnlyList<PresentationItem> Details, string? PreviewText);
+public sealed record AgentJobPresentation(List<PresentationItem> Details, List<PresentationTable> Tables)
+{
+    public List<PresentationTextBlock> TextBlocks { get; } = [];
+    public string? RawJson { get; set; }
+}

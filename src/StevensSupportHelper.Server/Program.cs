@@ -33,6 +33,7 @@ builder.Services.AddSingleton<RequestRateLimitService>();
 builder.Services.AddSingleton<UserService>();
 builder.Services.AddSingleton<JwtTokenService>();
 builder.Services.AddSingleton<DeploymentPackageService>();
+builder.Services.AddSingleton<RemoteActionCatalogService>();
 
 var app = builder.Build();
 
@@ -684,7 +685,7 @@ app.MapGet("/api/admin/audit-entries", (HttpContext httpContext, int? limit, Cli
 	return Results.Ok(registry.GetAuditEntries(limit ?? 50));
 });
 
-app.MapGet("/api/admin/remote-actions", (HttpContext httpContext, AdminAuthService authService, JwtTokenService jwtService, UserService userService) =>
+app.MapGet("/api/admin/remote-actions", (HttpContext httpContext, RemoteActionCatalogService remoteActionCatalog, AdminAuthService authService, JwtTokenService jwtService, UserService userService) =>
 {
 	var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out _, readRoles);
 	if (authorizationFailure is not null)
@@ -692,12 +693,12 @@ app.MapGet("/api/admin/remote-actions", (HttpContext httpContext, AdminAuthServi
 		return authorizationFailure;
 	}
 
-	return Results.Ok(new[]
+	return Results.Ok(remoteActionCatalog.GetActions().Select(static action => new
 	{
-		new { Name = "collect_support_snapshot.ps1", Description = "Sammelt Diagnosedaten und eine Systemübersicht.", RequiresElevation = false },
-		new { Name = "restart_spooler.ps1", Description = "Startet den Windows-Druckspooler neu.", RequiresElevation = true },
-		new { Name = "winget_update_all.ps1", Description = "Plant Softwareupdates per winget ein.", RequiresElevation = true }
-	});
+		action.Name,
+		action.Description,
+		action.RequiresElevation
+	}));
 });
 
 app.MapGet("/api/admin/file-transfers/{transferId:guid}", (HttpContext httpContext, Guid transferId, ClientRegistry registry, AdminAuthService authService, JwtTokenService jwtService, UserService userService) =>
@@ -971,6 +972,37 @@ app.MapPost("/api/admin/clients/{clientId:guid}/agent-jobs/script-execution", (H
 	try
 	{
 		return Results.Ok(registry.QueueScriptExecutionJob(clientId, request.ScriptContent, admin.DisplayName));
+	}
+	catch (InvalidOperationException exception)
+	{
+		return Results.Conflict(new { message = exception.Message });
+	}
+	catch (KeyNotFoundException)
+	{
+		return Results.NotFound();
+	}
+});
+
+app.MapPost("/api/admin/clients/{clientId:guid}/agent-jobs/remote-action", (HttpContext httpContext, Guid clientId, RemoteActionExecutionRequest request, RemoteActionCatalogService remoteActionCatalog, ClientRegistry registry, AdminAuthService authService, JwtTokenService jwtService, UserService userService) =>
+{
+	var authorizationFailure = RequireAdmin(httpContext, authService, jwtService, userService, out var admin, manageRoles);
+	if (authorizationFailure is not null)
+	{
+		return authorizationFailure;
+	}
+
+	try
+	{
+		var action = remoteActionCatalog.GetAction(request.Name);
+		return Results.Ok(registry.QueueScriptExecutionJob(clientId, action.ScriptContent, admin.DisplayName));
+	}
+	catch (ArgumentException exception)
+	{
+		return Results.BadRequest(new { message = exception.Message });
+	}
+	catch (FileNotFoundException exception)
+	{
+		return Results.NotFound(new { message = exception.Message });
 	}
 	catch (InvalidOperationException exception)
 	{
@@ -1284,6 +1316,7 @@ public partial class Program
 }
 
 internal sealed record HardcodedSuperAdminStateRequest(bool Enabled);
+internal sealed record RemoteActionExecutionRequest(string Name);
 
 internal sealed record AppliedRateLimit(
 	string PolicyName,

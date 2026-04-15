@@ -2,19 +2,205 @@
 @model PrivacyModel
 @{
     ViewData["Title"] = "Sicherheit";
-    ViewData["Subtitle"] = "Sicherheitsstatus, Betriebshinweise und Deployment-Hygiene";
+    ViewData["Subtitle"] = "Sitzung, Notfallzugang und Härtungsstatus der Administration";
 }
+
+@if (!string.IsNullOrWhiteSpace(Model.StatusMessage))
+{
+    <div class="shell-alert @(Model.IsError ? "error" : "success") mb-4">@Model.StatusMessage</div>
+}
+
+<div class="stats-grid mb-4">
+    <div class="metric-card surface-card">
+        <div class="metric-label">Administratoren</div>
+        <div class="metric-value">@Model.AdministratorCount</div>
+        <div class="metric-note">Konten mit Vollzugriff auf Benutzer und kritische Aktionen</div>
+    </div>
+    <div class="metric-card surface-card">
+        <div class="metric-label">Operatoren</div>
+        <div class="metric-value">@Model.OperatorCount</div>
+        <div class="metric-note">Konten für den aktiven Supportbetrieb</div>
+    </div>
+    <div class="metric-card surface-card">
+        <div class="metric-label">MFA aktiv</div>
+        <div class="metric-value">@Model.MfaEnabledCount</div>
+        <div class="metric-note">Benutzer mit aktivierter Mehrfaktor-Anmeldung</div>
+    </div>
+    <div class="metric-card surface-card">
+        <div class="metric-label">Notfallzugang</div>
+        <div class="metric-value @(Model.HardcodedSuperAdmin?.Enabled == true ? "text-warning" : "text-success")">
+            @(Model.HardcodedSuperAdmin?.Enabled == true ? "Aktiv" : "Aus")
+        </div>
+        <div class="metric-note">Fest eingebauter Super-Administrator für den Notfall</div>
+    </div>
+</div>
+
+<div class="cards-grid two-col mb-4">
+    <section class="surface-card">
+        <div class="surface-card-header">
+            <div>
+                <div class="eyebrow">Sitzung</div>
+                <h2 class="section-title">Aktuelle Admin-Sitzung</h2>
+            </div>
+        </div>
+        <div class="surface-card-body">
+            @if (Model.CurrentUser is null || Model.SessionInfo is null)
+            {
+                <div class="shell-panel-muted">Die Sitzungsdaten konnten nicht geladen werden.</div>
+            }
+            else
+            {
+                <dl class="detail-list">
+                    <dt>Anzeigename</dt>
+                    <dd>@Model.CurrentUser.DisplayName</dd>
+                    <dt>Benutzername</dt>
+                    <dd>@Model.CurrentUser.Username</dd>
+                    <dt>Rollen</dt>
+                    <dd>@string.Join(", ", Model.SessionInfo.Roles)</dd>
+                    <dt>MFA erforderlich</dt>
+                    <dd>@(Model.SessionInfo.RequiresMfa ? "Ja" : "Nein")</dd>
+                    <dt>Letzte Anmeldung</dt>
+                    <dd>@(Model.CurrentUser.LastLoginAtUtc?.ToLocalTime().ToString("g") ?? "Noch nie")</dd>
+                </dl>
+            }
+        </div>
+    </section>
+
+    <section class="surface-card">
+        <div class="surface-card-header">
+            <div>
+                <div class="eyebrow">Notfallzugang</div>
+                <h2 class="section-title">SuperAdmin verwalten</h2>
+                <p class="section-subtitle">Den fest eingebauten Notfallzugang nur aktiv lassen, wenn er wirklich benötigt wird.</p>
+            </div>
+        </div>
+        <div class="surface-card-body">
+            @if (Model.HardcodedSuperAdmin is null)
+            {
+                <div class="shell-panel-muted">Der Status des Notfallzugangs konnte nicht geladen werden.</div>
+            }
+            else
+            {
+                <dl class="detail-list">
+                    <dt>Benutzername</dt>
+                    <dd>@Model.HardcodedSuperAdmin.Username</dd>
+                    <dt>Anzeigename</dt>
+                    <dd>@Model.HardcodedSuperAdmin.DisplayName</dd>
+                    <dt>Status</dt>
+                    <dd>@(Model.HardcodedSuperAdmin.Enabled ? "Aktiv" : "Deaktiviert")</dd>
+                </dl>
+
+                <div class="shell-panel-muted mt-3">
+                    Empfehlung: Den Notfallzugang nur für Wiederherstellung oder Break-Glass-Szenarien aktivieren und danach direkt wieder deaktivieren.
+                </div>
+
+                <form method="post" asp-page-handler="SetHardcodedSuperAdminState" class="action-row mt-3">
+                    <input type="hidden" name="enabled" value="@(Model.HardcodedSuperAdmin.Enabled ? "false" : "true")" />
+                    <button type="submit" class="@(Model.HardcodedSuperAdmin.Enabled ? "shell-btn-warning" : "shell-btn")">
+                        @(Model.HardcodedSuperAdmin.Enabled ? "Notfallzugang deaktivieren" : "Notfallzugang aktivieren")
+                    </button>
+                </form>
+            }
+        </div>
+    </section>
+</div>
+
+<div class="cards-grid two-col mb-4">
+    <section class="surface-card">
+        <div class="surface-card-header">
+            <div>
+                <div class="eyebrow">Härtung</div>
+                <h2 class="section-title">Empfohlene Maßnahmen</h2>
+            </div>
+        </div>
+        <div class="surface-card-body">
+            <div class="security-checklist">
+                <div class="surface-subcard compact">
+                    <div class="mini-title">1. Notfallzugang minimieren</div>
+                    <div class="section-subtitle">SuperAdmin nur temporär aktivieren und Änderungen im Audit nachverfolgen.</div>
+                </div>
+                <div class="surface-subcard compact">
+                    <div class="mini-title">2. MFA für echte Admin-Konten</div>
+                    <div class="section-subtitle">Mindestens alle Administratoren und idealerweise auch Operatoren mit MFA absichern.</div>
+                </div>
+                <div class="surface-subcard compact">
+                    <div class="mini-title">3. Rollen eng halten</div>
+                    <div class="section-subtitle">Administrator nur für Benutzerverwaltung und Plattformpflege, Operator für Tagesbetrieb, Auditor für Leserechte.</div>
+                </div>
+                <div class="surface-subcard compact">
+                    <div class="mini-title">4. API-Zugänge prüfen</div>
+                    <div class="section-subtitle">API-Key-Konten und Deployment-Assets regelmäßig überprüfen und nur notwendige Secrets hinterlegen.</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="surface-card">
+        <div class="surface-card-header">
+            <div>
+                <div class="eyebrow">Status</div>
+                <h2 class="section-title">Rollenübersicht</h2>
+            </div>
+        </div>
+        <div class="surface-card-body">
+            <dl class="detail-list">
+                <dt>Administratoren</dt>
+                <dd>@Model.AdministratorCount</dd>
+                <dt>Operatoren</dt>
+                <dd>@Model.OperatorCount</dd>
+                <dt>Auditoren</dt>
+                <dd>@Model.AuditorCount</dd>
+                <dt>MFA aktiviert</dt>
+                <dd>@Model.MfaEnabledCount</dd>
+            </dl>
+            <div class="shell-panel-muted mt-3">
+                Die eigentliche Benutzer- und Passwortverwaltung bleibt unter <a asp-page="/Users">Benutzerverwaltung</a>, damit Sicherheit und Konten sauber getrennt bleiben.
+            </div>
+        </div>
+    </section>
+</div>
 
 <section class="surface-card">
     <div class="surface-card-header">
         <div>
-            <div class="eyebrow">Sicherheit</div>
-            <h2 class="section-title">Betriebshinweise</h2>
+            <div class="eyebrow">Benutzer mit Vollzugriff</div>
+            <h2 class="section-title">Administrationskonten</h2>
+            <p class="section-subtitle">Schneller Überblick über Konten mit erhöhten Rechten.</p>
         </div>
     </div>
     <div class="surface-card-body">
-        <div class="shell-panel-muted">
-            Dieser Bereich ist für Sicherheitsvorgaben, MFA-Hinweise, API-Key-Rotation und Empfehlungen zur Härtung vorbereitet.
-        </div>
+        @if (Model.Users.Count == 0)
+        {
+            <div class="empty-state">Es sind noch keine Benutzerkonten vorhanden.</div>
+        }
+        else
+        {
+            <div class="shell-table-wrap">
+                <table class="shell-table">
+                    <thead>
+                        <tr>
+                            <th>Benutzer</th>
+                            <th>Rollen</th>
+                            <th>MFA</th>
+                            <th>Letzte Anmeldung</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var user in Model.Users.OrderByDescending(user => user.Roles.Contains("Administrator", StringComparer.OrdinalIgnoreCase)).ThenBy(user => user.DisplayName))
+                        {
+                            <tr>
+                                <td>
+                                    <strong>@user.DisplayName</strong><br />
+                                    <span class="text-muted">@user.Username</span>
+                                </td>
+                                <td>@string.Join(", ", user.Roles)</td>
+                                <td>@(user.IsMfaEnabled ? "Aktiv" : "Nicht aktiv")</td>
+                                <td>@(user.LastLoginAtUtc?.ToLocalTime().ToString("g") ?? "Noch nie")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
     </div>
 </section>

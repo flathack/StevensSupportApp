@@ -40,12 +40,21 @@
         @if (Model.IsUsingDemoClients)
         {
             <div class="alert alert-info">
-                Demo-Clients werden angezeigt, weil aktuell keine echten Clients verbunden sind.
+                Demo-Clients werden aktuell bewusst angezeigt. Sobald echte Clients online sind, wechselt das Dashboard automatisch zurück in den Live-Betrieb.
+                <form method="post" asp-page-handler="DisableDemo" class="d-inline-block ms-3">
+                    <button type="submit" class="shell-btn-outline">Demo-Modus beenden</button>
+                </form>
             </div>
         }
         @if (Model.Clients.Count == 0)
         {
             <div class="empty-state">Es wurden noch keine Clients gemeldet. Sobald sich Agenten registrieren, erscheinen sie hier.</div>
+            @if (Model.CanEnableDemoMode)
+            {
+                <form method="post" asp-page-handler="EnableDemo" class="mt-3">
+                    <button type="submit" class="shell-btn">Demo-Modus mit Beispiel-Clients starten</button>
+                </form>
+            }
         }
         else
         {

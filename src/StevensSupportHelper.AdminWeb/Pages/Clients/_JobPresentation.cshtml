@@ -1,0 +1,48 @@
+@model StevensSupportHelper.AdminWeb.Pages.Clients.AgentJobPresentation
+
+<div class="job-result-card mt-3">
+    <div class="mini-label">Ergebnis</div>
+    <dl class="detail-list mt-3">
+        @foreach (var item in Model.Details)
+        {
+            <dt>@item.Label</dt><dd>@item.Value</dd>
+        }
+    </dl>
+
+    @foreach (var table in Model.Tables)
+    {
+        <div class="shell-table-wrap mt-3">
+            <table class="shell-table result-table">
+                <thead>
+                    <tr>
+                        @foreach (var column in table.Columns)
+                        {
+                            <th>@column</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in table.Rows)
+                    {
+                        <tr>
+                            @foreach (var cell in row)
+                            {
+                                <td>@cell</td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    @foreach (var block in Model.TextBlocks)
+    {
+        <pre class="config-preview mt-3">@block.Content</pre>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(Model.RawJson))
+    {
+        <pre class="config-preview mt-3">@Model.RawJson</pre>
+    }
+</div>

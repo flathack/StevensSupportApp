@@ -96,6 +96,10 @@ public sealed class DetailsModel : PageModel
     public string? ActionMessage { get; set; }
     public bool IsActionError { get; set; }
     public bool IsUsingDemoClient { get; set; }
+    public bool HasServiceResult => IsJobType(AgentJobType.ServiceSnapshot, AgentJobType.ServiceControl);
+    public bool HasRegistryResult => IsJobType(AgentJobType.RegistrySnapshot);
+    public bool HasPowerResult => IsJobType(AgentJobType.PowerPlanSnapshot, AgentJobType.PowerPlanActivate);
+    public bool HasWindowsUpdateResult => IsJobType(AgentJobType.WindowsUpdateScan, AgentJobType.WindowsUpdateInstall);
     public string RdpTargetHost => Client?.TailscaleIpAddresses.FirstOrDefault()
         ?? Client?.MachineName
         ?? string.Empty;
@@ -834,6 +838,9 @@ public sealed class DetailsModel : PageModel
             return false;
         }
     }
+
+    private bool IsJobType(params AgentJobType[] supportedTypes)
+        => LatestAgentJob is not null && supportedTypes.Contains(LatestAgentJob.JobType);
 }
 
 public sealed record ClientToolDefinition(string Key, string Label, string Description);

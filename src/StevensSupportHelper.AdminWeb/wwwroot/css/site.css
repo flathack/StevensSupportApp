@@ -784,6 +784,41 @@ a {
   max-height: 520px;
 }
 
+.chat-thread {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.chat-bubble {
+  border-radius: 18px;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--shell-border);
+  background: #f8fbfe;
+}
+
+.chat-bubble header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.45rem;
+  font-size: 0.86rem;
+  color: var(--shell-muted);
+}
+
+.chat-bubble.admin {
+  background: linear-gradient(180deg, #eef7fd 0%, #dceefb 100%);
+  border-color: rgba(29, 155, 240, 0.22);
+}
+
+.chat-bubble.client {
+  background: #ffffff;
+}
+
+.job-result-card {
+  border-top: 1px solid #edf2f7;
+  padding-top: 1rem;
+}
+
 @media (max-width: 1100px) {
   .stats-grid,
   .cards-grid,

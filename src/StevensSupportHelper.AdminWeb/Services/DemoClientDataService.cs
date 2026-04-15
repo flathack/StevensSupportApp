@@ -1,3 +1,5 @@
+using StevensSupportHelper.Shared.Contracts;
+
 namespace StevensSupportHelper.AdminWeb.Services;
 
 public sealed class DemoClientDataService
@@ -56,13 +58,20 @@ public sealed class DemoClientDataService
                 _clients[0].IsOnline,
                 true,
                 true,
+                true,
                 ["100.92.10.12"],
                 now.AddMonths(-4),
                 _clients[0].LastSeenAtUtc,
                 _clients[0].Notes,
                 "RD-004-774",
+                "DemoPW-1",
+                "alpha-support",
+                "DemoRemotePW-1",
+                [RemoteChannel.RustDesk, RemoteChannel.Rdp, RemoteChannel.WinRm],
                 new SupportRequestResponse(Guid.Parse("aaaaaaa1-aaaa-aaaa-aaaa-aaaaaaaaaaa1"), "Ausstehend", "Wartet auf Zustimmung des Benutzers."),
-                null),
+                null,
+                2,
+                now.AddMinutes(-4)),
             [_clients[1].ClientId] = new ClientDetailResponse(
                 _clients[1].ClientId,
                 _clients[1].DeviceName,
@@ -76,17 +85,24 @@ public sealed class DemoClientDataService
                 _clients[1].IsOnline,
                 false,
                 true,
+                true,
                 ["100.92.10.44"],
                 now.AddMonths(-6),
                 _clients[1].LastSeenAtUtc,
                 _clients[1].Notes,
                 "RD-991-220",
+                "FinancePW-9",
+                "accounting-admin",
+                "AccountingRemotePW-9",
+                [RemoteChannel.RustDesk, RemoteChannel.Rdp],
                 null,
                 new SupportSessionResponse(
                     Guid.Parse("bbbbbbb2-bbbb-bbbb-bbbb-bbbbbbbbbbb2"),
                     "Standard-Administrator",
                     "RustDesk",
-                    now.AddMinutes(-18))),
+                    now.AddMinutes(-18)),
+                0,
+                now.AddMinutes(-18)),
             [_clients[2].ClientId] = new ClientDetailResponse(
                 _clients[2].ClientId,
                 _clients[2].DeviceName,
@@ -100,12 +116,19 @@ public sealed class DemoClientDataService
                 _clients[2].IsOnline,
                 true,
                 false,
+                false,
                 [],
                 now.AddMonths(-10),
                 _clients[2].LastSeenAtUtc,
                 _clients[2].Notes,
                 null,
                 null,
+                null,
+                null,
+                [RemoteChannel.WinRm],
+                null,
+                null,
+                0,
                 null)
         };
 

@@ -1,6 +1,8 @@
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
-using System.Net.Http.Headers;
+using System.Text.Json.Serialization;
+using StevensSupportHelper.Shared.Contracts;
 
 namespace StevensSupportHelper.AdminWeb.Services;
 
@@ -9,7 +11,10 @@ public sealed class ApiClient
     private readonly HttpClient _httpClient;
     private readonly string _baseUrl;
     private string? _accessToken;
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        Converters = { new JsonStringEnumConverter() }
+    };
 
     public ApiClient(HttpClient httpClient, IConfiguration configuration)
     {
@@ -22,75 +27,32 @@ public sealed class ApiClient
     public void SetAccessToken(string? token)
     {
         _accessToken = token;
-        if (!string.IsNullOrEmpty(token))
-        {
-            _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-        }
-        else
-        {
-            _httpClient.DefaultRequestHeaders.Authorization = null;
-        }
+        _httpClient.DefaultRequestHeaders.Authorization = string.IsNullOrWhiteSpace(token)
+            ? null
+            : new AuthenticationHeaderValue("Bearer", token);
     }
 
     public string? AccessToken => _accessToken;
 
     public async Task<LoginResponse?> LoginAsync(string username, string password)
-    {
-        var response = await _httpClient.PostAsJsonAsync("/api/auth/login", new { Username = username, Password = password });
-        if (!response.IsSuccessStatusCode)
-        {
-            return null;
-        }
-
-        return await response.Content.ReadFromJsonAsync<LoginResponse>(JsonOptions);
-    }
+        => await PostAsJsonAsync<LoginResponse>("/api/auth/login", new { Username = username, Password = password });
 
     public async Task<UserInfoResponse?> GetCurrentUserAsync()
-    {
-        var response = await _httpClient.GetAsync("/api/auth/me");
-        if (!response.IsSuccessStatusCode)
-        {
-            return null;
-        }
-
-        return await response.Content.ReadFromJsonAsync<UserInfoResponse>(JsonOptions);
-    }
+        => await GetAsync<UserInfoResponse>("/api/auth/me");
 
     public async Task<List<UserInfoResponse>?> GetUsersAsync()
-    {
-        var response = await _httpClient.GetAsync("/api/auth/users");
-        if (!response.IsSuccessStatusCode)
-        {
-            return null;
-        }
-
-        return await response.Content.ReadFromJsonAsync<List<UserInfoResponse>>(JsonOptions);
-    }
+        => await GetAsync<List<UserInfoResponse>>("/api/auth/users");
 
     public async Task<HardcodedSuperAdminStateResponse?> GetHardcodedSuperAdminStateAsync()
-    {
-        var response = await _httpClient.GetAsync("/api/auth/hardcoded-super-admin");
-        if (!response.IsSuccessStatusCode)
-        {
-            return null;
-        }
-
-        return await response.Content.ReadFromJsonAsync<HardcodedSuperAdminStateResponse>(JsonOptions);
-    }
+        => await GetAsync<HardcodedSuperAdminStateResponse>("/api/auth/hardcoded-super-admin");
 
     public async Task<ApiMessageResponse?> UpdateHardcodedSuperAdminStateAsync(bool enabled)
-    {
-        var response = await _httpClient.PostAsJsonAsync("/api/auth/hardcoded-super-admin", new { Enabled = enabled });
-        if (!response.IsSuccessStatusCode)
-        {
-            return await ReadErrorResponseAsync(response);
-        }
-
-        return await response.Content.ReadFromJsonAsync<ApiMessageResponse>(JsonOptions)
-            ?? new ApiMessageResponse(true, enabled
+        => await PostForMessageAsync(
+            "/api/auth/hardcoded-super-admin",
+            new { Enabled = enabled },
+            enabled
                 ? "Der fest eingebaute Super-Administrator wurde aktiviert."
                 : "Der fest eingebaute Super-Administrator wurde deaktiviert.");
-    }
 
     public async Task<ApiMessageResponse?> CreateUserAsync(CreateUserRequest request)
     {
@@ -105,26 +67,10 @@ public sealed class ApiClient
     }
 
     public async Task<ApiMessageResponse?> UpdateUserRolesAsync(Guid userId, IReadOnlyList<string> roles)
-    {
-        var response = await _httpClient.PutAsJsonAsync($"/api/auth/users/{userId}/roles", new { Roles = roles });
-        if (!response.IsSuccessStatusCode)
-        {
-            return await ReadErrorResponseAsync(response);
-        }
-
-        return await response.Content.ReadFromJsonAsync<ApiMessageResponse>(JsonOptions) ?? new ApiMessageResponse(true, "Rollen wurden aktualisiert.");
-    }
+        => await PutForMessageAsync($"/api/auth/users/{userId}/roles", new { Roles = roles }, "Rollen wurden aktualisiert.");
 
     public async Task<ApiMessageResponse?> ResetUserPasswordAsync(Guid userId, string newPassword)
-    {
-        var response = await _httpClient.PostAsJsonAsync($"/api/auth/users/{userId}/reset-password", new { NewPassword = newPassword });
-        if (!response.IsSuccessStatusCode)
-        {
-            return await ReadErrorResponseAsync(response);
-        }
-
-        return await response.Content.ReadFromJsonAsync<ApiMessageResponse>(JsonOptions) ?? new ApiMessageResponse(true, "Passwort wurde zurückgesetzt.");
-    }
+        => await PostForMessageAsync($"/api/auth/users/{userId}/reset-password", new { NewPassword = newPassword }, "Passwort wurde zurückgesetzt.");
 
     public async Task<ApiMessageResponse?> DeleteUserAsync(Guid userId)
     {
@@ -134,122 +80,118 @@ public sealed class ApiClient
             return await ReadErrorResponseAsync(response);
         }
 
-        return await response.Content.ReadFromJsonAsync<ApiMessageResponse>(JsonOptions) ?? new ApiMessageResponse(true, "Benutzer wurde gelöscht.");
+        return await response.Content.ReadFromJsonAsync<ApiMessageResponse>(JsonOptions)
+            ?? new ApiMessageResponse(true, "Benutzer wurde gelöscht.");
     }
 
     public async Task<ApiMessageResponse?> ChangeOwnPasswordAsync(string oldPassword, string newPassword)
-    {
-        var response = await _httpClient.PostAsJsonAsync("/api/auth/change-password", new { OldPassword = oldPassword, NewPassword = newPassword });
-        if (!response.IsSuccessStatusCode)
-        {
-            return await ReadErrorResponseAsync(response);
-        }
-
-        return await response.Content.ReadFromJsonAsync<ApiMessageResponse>(JsonOptions) ?? new ApiMessageResponse(true, "Passwort wurde geändert.");
-    }
+        => await PostForMessageAsync("/api/auth/change-password", new { OldPassword = oldPassword, NewPassword = newPassword }, "Passwort wurde geändert.");
 
     public async Task<List<ClientSummaryResponse>?> GetClientsAsync()
-    {
-        var response = await _httpClient.GetAsync("/api/admin/clients");
-        if (!response.IsSuccessStatusCode)
-        {
-            return null;
-        }
-
-        return await response.Content.ReadFromJsonAsync<List<ClientSummaryResponse>>(JsonOptions);
-    }
+        => await GetAsync<List<ClientSummaryResponse>>("/api/admin/clients");
 
     public async Task<ClientDetailResponse?> GetClientAsync(Guid clientId)
-    {
-        var response = await _httpClient.GetAsync($"/api/admin/clients/{clientId}");
-        if (!response.IsSuccessStatusCode)
-        {
-            return null;
-        }
-
-        return await response.Content.ReadFromJsonAsync<ClientDetailResponse>(JsonOptions);
-    }
+        => await GetAsync<ClientDetailResponse>($"/api/admin/clients/{clientId}");
 
     public async Task<SupportRequestResponse?> CreateSupportRequestAsync(Guid clientId, string adminDisplayName, string preferredChannel, string reason)
     {
-        var response = await _httpClient.PostAsJsonAsync($"/api/admin/clients/{clientId}/support-requests", new
+        if (!Enum.TryParse<RemoteChannel>(preferredChannel, ignoreCase: true, out var channel))
         {
-            AdminDisplayName = adminDisplayName,
-            PreferredChannel = preferredChannel,
-            Reason = reason
-        });
-        if (!response.IsSuccessStatusCode)
-        {
-            return null;
+            channel = RemoteChannel.RustDesk;
         }
 
-        return await response.Content.ReadFromJsonAsync<SupportRequestResponse>(JsonOptions);
+        return await PostAsJsonAsync<SupportRequestResponse>(
+            $"/api/admin/clients/{clientId}/support-requests",
+            new CreateSupportRequestRequest(adminDisplayName, channel, reason));
     }
 
     public async Task<EndSessionResponse?> EndSessionAsync(Guid clientId)
-    {
-        var response = await _httpClient.PostAsync($"/api/admin/clients/{clientId}/active-session/end", null);
-        if (!response.IsSuccessStatusCode)
-        {
-            return null;
-        }
-
-        return await response.Content.ReadFromJsonAsync<EndSessionResponse>(JsonOptions);
-    }
+        => await PostAsync<EndSessionResponse>($"/api/admin/clients/{clientId}/active-session/end");
 
     public async Task<List<AuditEntryResponse>?> GetAuditEntriesAsync(int limit = 100)
-    {
-        var response = await _httpClient.GetAsync($"/api/admin/audit?take={limit}");
-        if (!response.IsSuccessStatusCode)
-        {
-            return null;
-        }
-
-        return await response.Content.ReadFromJsonAsync<List<AuditEntryResponse>>(JsonOptions);
-    }
+        => await GetAsync<List<AuditEntryResponse>>($"/api/admin/audit?take={limit}");
 
     public async Task<List<RemoteActionResponse>?> GetRemoteActionsAsync()
-    {
-        var response = await _httpClient.GetAsync("/api/admin/remote-actions");
-        if (!response.IsSuccessStatusCode)
-        {
-            return null;
-        }
+        => await GetAsync<List<RemoteActionResponse>>("/api/admin/remote-actions");
 
-        return await response.Content.ReadFromJsonAsync<List<RemoteActionResponse>>(JsonOptions);
-    }
+    public async Task<List<ChatMessageDto>?> GetChatMessagesAsync(Guid clientId)
+        => await GetAsync<List<ChatMessageDto>>($"/api/admin/clients/{clientId}/chat-messages");
 
-    public async Task<ScriptResultResponse?> ExecuteRemoteActionAsync(Guid clientId, string scriptName)
-    {
-        var response = await _httpClient.PostAsJsonAsync($"/api/admin/clients/{clientId}/agent-jobs/script-execution", new
-        {
-            ScriptName = scriptName
-        });
-        if (!response.IsSuccessStatusCode)
-        {
-            return null;
-        }
+    public async Task<ChatMessageDto?> SendChatMessageAsync(Guid clientId, string message)
+        => await PostAsJsonAsync<ChatMessageDto>($"/api/admin/clients/{clientId}/chat-messages", new SendAdminChatMessageRequest(message));
 
-        return await response.Content.ReadFromJsonAsync<ScriptResultResponse>(JsonOptions);
-    }
+    public async Task<ApiMessageResponse?> UpdateClientMetadataAsync(Guid clientId, string notes, string rustDeskId, string rustDeskPassword, string remoteUserName, string remotePassword)
+        => await PutForMessageAsync(
+            $"/api/admin/clients/{clientId}/metadata",
+            new UpdateAdminClientMetadataRequest(
+                string.IsNullOrWhiteSpace(notes) ? null : notes.Trim(),
+                string.IsNullOrWhiteSpace(rustDeskId) ? null : rustDeskId.Trim(),
+                string.IsNullOrWhiteSpace(rustDeskPassword) ? null : rustDeskPassword.Trim(),
+                string.IsNullOrWhiteSpace(remoteUserName) ? null : remoteUserName.Trim(),
+                string.IsNullOrWhiteSpace(remotePassword) ? null : remotePassword.Trim()),
+            "Client-Metadaten wurden gespeichert.");
+
+    public async Task<QueueFileTransferResponse?> QueueFileUploadAsync(Guid clientId, string fileName, string targetRelativePath, string contentBase64)
+        => await PostAsJsonAsync<QueueFileTransferResponse>(
+            $"/api/admin/clients/{clientId}/file-transfers/upload",
+            new QueueFileUploadRequest(fileName, targetRelativePath, contentBase64));
+
+    public async Task<QueueFileTransferResponse?> QueueFileDownloadAsync(Guid clientId, string sourceRelativePath)
+        => await PostAsJsonAsync<QueueFileTransferResponse>(
+            $"/api/admin/clients/{clientId}/file-transfers/download",
+            new QueueFileDownloadRequest(sourceRelativePath));
+
+    public async Task<FileTransferDto?> GetFileTransferAsync(Guid transferId)
+        => await GetAsync<FileTransferDto>($"/api/admin/file-transfers/{transferId}");
+
+    public async Task<FileTransferContentResponse?> GetFileTransferContentAsync(Guid transferId)
+        => await GetAsync<FileTransferContentResponse>($"/api/admin/file-transfers/{transferId}/content");
+
+    public async Task<QueueAgentJobResponse?> QueueProcessSnapshotAsync(Guid clientId)
+        => await PostAsync<QueueAgentJobResponse>($"/api/admin/clients/{clientId}/agent-jobs/process-snapshot");
+
+    public async Task<QueueAgentJobResponse?> QueueWindowsUpdateScanAsync(Guid clientId)
+        => await PostAsync<QueueAgentJobResponse>($"/api/admin/clients/{clientId}/agent-jobs/windows-update-scan");
+
+    public async Task<QueueAgentJobResponse?> QueueWindowsUpdateInstallAsync(Guid clientId)
+        => await PostAsync<QueueAgentJobResponse>($"/api/admin/clients/{clientId}/agent-jobs/windows-update-install");
+
+    public async Task<QueueAgentJobResponse?> QueueRegistrySnapshotAsync(Guid clientId, string registryPath)
+        => await PostAsJsonAsync<QueueAgentJobResponse>(
+            $"/api/admin/clients/{clientId}/agent-jobs/registry-snapshot",
+            new AgentRegistrySnapshotRequest(registryPath));
+
+    public async Task<QueueAgentJobResponse?> QueueServiceSnapshotAsync(Guid clientId)
+        => await PostAsync<QueueAgentJobResponse>($"/api/admin/clients/{clientId}/agent-jobs/service-snapshot");
+
+    public async Task<QueueAgentJobResponse?> QueueServiceControlAsync(Guid clientId, string serviceName, string action)
+        => await PostAsJsonAsync<QueueAgentJobResponse>(
+            $"/api/admin/clients/{clientId}/agent-jobs/service-control",
+            new AgentServiceControlRequest(serviceName, action));
+
+    public async Task<QueueAgentJobResponse?> QueueScriptExecutionAsync(Guid clientId, string scriptContent)
+        => await PostAsJsonAsync<QueueAgentJobResponse>(
+            $"/api/admin/clients/{clientId}/agent-jobs/script-execution",
+            new { ScriptContent = scriptContent });
+
+    public async Task<QueueAgentJobResponse?> QueuePowerPlanSnapshotAsync(Guid clientId)
+        => await PostAsync<QueueAgentJobResponse>($"/api/admin/clients/{clientId}/agent-jobs/power-plan-snapshot");
+
+    public async Task<QueueAgentJobResponse?> QueuePowerPlanActivateAsync(Guid clientId, string powerPlanGuid)
+        => await PostAsJsonAsync<QueueAgentJobResponse>(
+            $"/api/admin/clients/{clientId}/agent-jobs/power-plan-activate",
+            new AgentPowerPlanActivateRequest(powerPlanGuid));
+
+    public async Task<AgentJobDto?> GetAgentJobAsync(Guid jobId)
+        => await GetAsync<AgentJobDto>($"/api/admin/agent-jobs/{jobId}");
 
     public async Task<DeploymentSnapshotResponse?> GetDeploymentSnapshotAsync()
-    {
-        var response = await _httpClient.GetAsync("/api/admin/deployment");
-        if (!response.IsSuccessStatusCode)
-        {
-            return null;
-        }
-
-        return await response.Content.ReadFromJsonAsync<DeploymentSnapshotResponse>(JsonOptions);
-    }
+        => await GetAsync<DeploymentSnapshotResponse>("/api/admin/deployment");
 
     public async Task<ApiResult<DeploymentSettingsResponse>?> SaveDeploymentSettingsAsync(DeploymentSettingsRequest request)
     {
         var response = await _httpClient.PutAsJsonAsync("/api/admin/deployment/settings", request);
-        return await ReadApiResultAsync<DeploymentSettingsEnvelope, DeploymentSettingsResponse>(
-            response,
-            payload => payload.Settings);
+        return await ReadApiResultAsync<DeploymentSettingsEnvelope, DeploymentSettingsResponse>(response, static payload => payload.Settings);
     }
 
     public async Task<ApiResult<DeploymentAssetResponse>?> UploadDeploymentAssetAsync(string assetKind, Stream contentStream, string fileName, string contentType)
@@ -260,17 +202,13 @@ public sealed class ApiClient
         multipartContent.Add(streamContent, "file", fileName);
 
         var response = await _httpClient.PostAsync($"/api/admin/deployment/assets/{assetKind}", multipartContent);
-        return await ReadApiResultAsync<DeploymentAssetEnvelope, DeploymentAssetResponse>(
-            response,
-            payload => payload.Asset);
+        return await ReadApiResultAsync<DeploymentAssetEnvelope, DeploymentAssetResponse>(response, static payload => payload.Asset);
     }
 
     public async Task<ApiResult<DeploymentProfileResponse>?> SaveDeploymentProfileAsync(DeploymentProfileRequest request)
     {
         var response = await _httpClient.PostAsJsonAsync("/api/admin/deployment/profiles", request);
-        return await ReadApiResultAsync<DeploymentProfileEnvelope, DeploymentProfileResponse>(
-            response,
-            payload => payload.Profile);
+        return await ReadApiResultAsync<DeploymentProfileEnvelope, DeploymentProfileResponse>(response, static payload => payload.Profile);
     }
 
     public async Task<ApiMessageResponse?> DeleteDeploymentProfileAsync(Guid profileId)
@@ -286,15 +224,7 @@ public sealed class ApiClient
     }
 
     public async Task<DeploymentConfigResponse?> GetDeploymentProfileConfigAsync(Guid profileId)
-    {
-        var response = await _httpClient.GetAsync($"/api/admin/deployment/profiles/{profileId}/config");
-        if (!response.IsSuccessStatusCode)
-        {
-            return null;
-        }
-
-        return await response.Content.ReadFromJsonAsync<DeploymentConfigResponse>(JsonOptions);
-    }
+        => await GetAsync<DeploymentConfigResponse>($"/api/admin/deployment/profiles/{profileId}/config");
 
     public async Task<PackageDownloadResponse?> DownloadDeploymentPackageAsync(Guid profileId)
     {
@@ -310,6 +240,66 @@ public sealed class ApiClient
         var contentType = response.Content.Headers.ContentType?.MediaType ?? "application/zip";
         var content = await response.Content.ReadAsByteArrayAsync();
         return new PackageDownloadResponse(fileName, contentType, content);
+    }
+
+    private async Task<T?> GetAsync<T>(string requestUri)
+        where T : class
+    {
+        var response = await _httpClient.GetAsync(requestUri);
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        return await response.Content.ReadFromJsonAsync<T>(JsonOptions);
+    }
+
+    private async Task<T?> PostAsync<T>(string requestUri)
+        where T : class
+    {
+        var response = await _httpClient.PostAsync(requestUri, null);
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        return await response.Content.ReadFromJsonAsync<T>(JsonOptions);
+    }
+
+    private async Task<T?> PostAsJsonAsync<T>(string requestUri, object payload)
+        where T : class
+    {
+        var response = await _httpClient.PostAsJsonAsync(requestUri, payload);
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        return await response.Content.ReadFromJsonAsync<T>(JsonOptions);
+    }
+
+    private async Task<ApiMessageResponse?> PostForMessageAsync(string requestUri, object payload, string fallbackMessage)
+    {
+        var response = await _httpClient.PostAsJsonAsync(requestUri, payload);
+        if (!response.IsSuccessStatusCode)
+        {
+            return await ReadErrorResponseAsync(response);
+        }
+
+        return await response.Content.ReadFromJsonAsync<ApiMessageResponse>(JsonOptions)
+            ?? new ApiMessageResponse(true, fallbackMessage);
+    }
+
+    private async Task<ApiMessageResponse?> PutForMessageAsync(string requestUri, object payload, string fallbackMessage)
+    {
+        var response = await _httpClient.PutAsJsonAsync(requestUri, payload);
+        if (!response.IsSuccessStatusCode)
+        {
+            return await ReadErrorResponseAsync(response);
+        }
+
+        return await response.Content.ReadFromJsonAsync<ApiMessageResponse>(JsonOptions)
+            ?? new ApiMessageResponse(true, fallbackMessage);
     }
 
     private static async Task<ApiResult<TData>?> ReadApiResultAsync<TEnvelope, TData>(
@@ -330,12 +320,7 @@ public sealed class ApiClient
             return new ApiResult<TData>(false, "Die Serverantwort konnte nicht gelesen werden.", null);
         }
 
-        var message = payload switch
-        {
-            IApiMessageEnvelope messageEnvelope => messageEnvelope.Message,
-            _ => "Operation erfolgreich."
-        };
-
+        var message = payload is IApiMessageEnvelope envelope ? envelope.Message : "Operation erfolgreich.";
         return new ApiResult<TData>(true, message, dataSelector(payload));
     }
 
@@ -421,14 +406,21 @@ public sealed record ClientDetailResponse(
     DateTimeOffset? LastBootAtUtc,
     bool IsOnline,
     bool ConsentRequired,
+    bool AutoApproveSupportRequests,
     bool TailscaleConnected,
     IReadOnlyList<string> TailscaleIpAddresses,
     DateTimeOffset RegisteredAtUtc,
     DateTimeOffset LastSeenAtUtc,
     string? Notes,
     string? RustDeskId,
-    SupportRequestResponse? PendingSupportRequest,
-    SupportSessionResponse? ActiveSession);
+    string? RustDeskPassword = null,
+    string? RemoteUserName = null,
+    string? RemotePassword = null,
+    IReadOnlyList<RemoteChannel>? SupportedChannels = null,
+    SupportRequestResponse? PendingSupportRequest = null,
+    SupportSessionResponse? ActiveSession = null,
+    int UnreadClientChatCount = 0,
+    DateTimeOffset? LastClientChatMessageAtUtc = null);
 
 public sealed record SupportSessionResponse(
     Guid SessionId,
@@ -449,11 +441,6 @@ public sealed record RemoteActionResponse(
     string Name,
     string Description,
     bool RequiresElevation);
-
-public sealed record ScriptResultResponse(
-    Guid JobId,
-    string Status,
-    string Message);
 
 public sealed record ApiMessageResponse(
     bool Success,

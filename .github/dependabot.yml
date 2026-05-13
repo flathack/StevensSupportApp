@@ -1,0 +1,121 @@
+version: 2
+updates:
+  - package-ecosystem: "nuget"
+    directory: "/src/StevensSupportHelper.Admin"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Berlin"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "dotnet"
+
+  - package-ecosystem: "nuget"
+    directory: "/src/StevensSupportHelper.AdminWeb"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:05"
+      timezone: "Europe/Berlin"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "dotnet"
+
+  - package-ecosystem: "nuget"
+    directory: "/src/StevensSupportHelper.Client.Service"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:10"
+      timezone: "Europe/Berlin"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "dotnet"
+
+  - package-ecosystem: "nuget"
+    directory: "/src/StevensSupportHelper.Client.Tray"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:15"
+      timezone: "Europe/Berlin"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "dotnet"
+
+  - package-ecosystem: "nuget"
+    directory: "/src/StevensSupportHelper.Installer"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:20"
+      timezone: "Europe/Berlin"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "dotnet"
+
+  - package-ecosystem: "nuget"
+    directory: "/src/StevensSupportHelper.Server"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:25"
+      timezone: "Europe/Berlin"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "dotnet"
+
+  - package-ecosystem: "nuget"
+    directory: "/src/StevensSupportHelper.Shared"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:30"
+      timezone: "Europe/Berlin"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "dotnet"
+
+  - package-ecosystem: "nuget"
+    directory: "/tests/StevensSupportHelper.Server.Tests"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:35"
+      timezone: "Europe/Berlin"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "dotnet"
+
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:40"
+      timezone: "Europe/Berlin"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "docker"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:45"
+      timezone: "Europe/Berlin"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"

@@ -287,3 +287,7 @@ Noch nicht als final produktionsreif zu betrachten:
 - `docs/admin-client-remote-access.md`
 - `client.installer.config.sample`
 - `SECURITY_REVIEW.md`
+
+## License
+
+MIT License. See [LICENSE](LICENSE).

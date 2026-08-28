@@ -1,14 +1,14 @@
 services:
-  stevens-support-app:
+  flathack-servicehub:
     image: ghcr.io/flathack/stevens-support-app:latest
-    container_name: stevens-support-app
+    container_name: flathack-servicehub
     restart: unless-stopped
     env_file:
       - .env
     ports:
       - "5000:5000"
     volumes:
-      - stevens-support-data:/data
+      - flathack-servicehub-data:/data
 
 volumes:
-  stevens-support-data:
+  flathack-servicehub-data:

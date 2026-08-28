@@ -19,28 +19,11 @@ FlatHack ServiceHub coordinates these support workflows; remote access still rel
 
 ## Public distribution repository
 
-This repository is the public distribution facade for packages, release metadata, and deployment examples. The application source code and private deployment material are maintained separately and are not published here.
+This repository is the public home for release information and future distribution packages. The application source code and private deployment material are maintained separately and are not published here.
 
-## Container Image
+## New build in progress
 
-The server container image is published to GitHub Container Registry:
-
-```text
-ghcr.io/flathack/stevens-support-app:latest
-```
-
-The image path currently retains the former project name for compatibility with existing deployments.
-
-Use the included `docker-compose.ghcr.yml` as a starting point for deployments.
-
-## Quick Start
-
-```powershell
-copy .env.example .env
-docker compose -f docker-compose.ghcr.yml --env-file .env up -d
-```
-
-The default Compose file exposes the ServiceHub server on port `5000`. Replace every placeholder in `.env` before using it outside a local test environment.
+The former container image and its deployment examples have been retired. A newly designed FlatHack ServiceHub build and distribution workflow will replace them. There is currently no supported public container image or deployment package.
 
 ## Security model
 
@@ -48,7 +31,7 @@ Remote support is designed around explicit client consent, authenticated adminis
 
 ## Releases and Packages
 
-GitHub remains the public endpoint for packages, release-facing metadata, and deployment examples.
+GitHub remains the public endpoint for release-facing metadata and future packages.
 
 ## License
 

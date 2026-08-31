@@ -1,0 +1,47 @@
+services:
+  servicehub:
+    image: ${SERVICEHUB_IMAGE:-ghcr.io/flathack/flathack-servicehub:pilot}
+    restart: unless-stopped
+    ports:
+      - "${SERVICEHUB_API_BIND:-127.0.0.1}:${SERVICEHUB_API_PORT:-5000}:5000"
+      - "${SERVICEHUB_WEB_BIND:-127.0.0.1}:${SERVICEHUB_WEB_PORT:-5001}:5001"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+      Jwt__SecretKey: ${SERVICEHUB_JWT_SECRET:?Generate .env.pilot with scripts/bootstrap-pilot.sh}
+      FlatHackServiceHubAuthSecurity__RequireMfaForAdministrators: ${SERVICEHUB_REQUIRE_ADMIN_MFA:-false}
+      FlatHackServiceHubAuthSecurity__UseSharedRateLimitStore: "true"
+      FlatHackServiceHubClientRegistration__AllowLegacySharedKey: "false"
+      FlatHackServiceHubBootstrapUser__Enabled: ${SERVICEHUB_BOOTSTRAP_ENABLED:-true}
+      FlatHackServiceHubBootstrapUser__Username: ${SERVICEHUB_BOOTSTRAP_USERNAME:-admin}
+      FlatHackServiceHubBootstrapUser__PasswordFile: /run/secrets/servicehub_bootstrap_password
+      FlatHackServiceHubBootstrapUser__DisplayName: ${SERVICEHUB_BOOTSTRAP_DISPLAY_NAME:-Pilot Administrator}
+      FlatHackServiceHubBootstrapUser__Roles__0: Administrator
+      FlatHackServiceHubBootstrapUser__Roles__1: Operator
+      FlatHackServiceHubBootstrapUser__Roles__2: Auditor
+      FlatHackServiceHubOperationalHealth__RequireRecentBackup: ${SERVICEHUB_REQUIRE_RECENT_BACKUP:-false}
+      FlatHackServiceHubOperationalHealth__BackupMaximumAgeHours: ${SERVICEHUB_BACKUP_MAX_AGE_HOURS:-26}
+      FlatHackServiceHubRemoteGateway__Enabled: "false"
+    volumes:
+      - servicehub-data:/data
+    secrets:
+      - servicehub_bootstrap_password
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 512
+    mem_limit: 2g
+    cpus: 2.0
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "5"
+
+volumes:
+  servicehub-data:
+
+secrets:
+  servicehub_bootstrap_password:
+    file: ${SERVICEHUB_BOOTSTRAP_PASSWORD_FILE:-./secrets/bootstrap-password.txt}

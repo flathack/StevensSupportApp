@@ -19,11 +19,28 @@ FlatHack ServiceHub coordinates these support workflows; remote access still rel
 
 ## Public distribution repository
 
-This repository is the public home for release information and future distribution packages. The application source code and private deployment material are maintained separately and are not published here.
+This repository is the public home for release information, the pilot Docker deployment and future distribution packages. The application source code and private deployment material are maintained separately and are not published here.
 
-## New build in progress
+## Pilot Docker deployment
 
-The former container image and its deployment examples have been retired. A newly designed FlatHack ServiceHub build and distribution workflow will replace them. There is currently no supported public container image or deployment package.
+The pilot server image is published as `ghcr.io/flathack/flathack-servicehub:pilot` only after private Ubuntu, Windows, secret-scan and container-security gates pass. It supports `linux/amd64` and `linux/arm64`.
+
+The pilot binds both ports to loopback. Put a TLS reverse proxy or a private overlay such as Tailscale in front of it; do not expose the raw HTTP ports directly to the internet.
+
+```bash
+git clone https://github.com/flathack/flathack-servicehub.git
+cd flathack-servicehub
+./scripts/bootstrap-pilot.sh
+```
+
+Open `http://127.0.0.1:5001/`, sign in with user `admin` and the locally generated password in `secrets/bootstrap-password.txt`, then immediately:
+
+1. enroll MFA and store the recovery codes;
+2. set `SERVICEHUB_BOOTSTRAP_ENABLED=false` in `.env.pilot`;
+3. restart with `docker compose --env-file .env.pilot -f compose.pilot.yaml up -d`;
+4. run `./scripts/backup-pilot.sh`, copy the backup off-host and set `SERVICEHUB_REQUIRE_RECENT_BACKUP=true`.
+
+The moving `pilot` tag is for a controlled test fleet. Record the deployed image digest before every upgrade and use a version tag for a later production release.
 
 ## Security model
 
@@ -31,7 +48,7 @@ Remote support is designed around explicit client consent, authenticated adminis
 
 ## Releases and Packages
 
-GitHub remains the public endpoint for release-facing metadata and future packages.
+GitHub remains the public endpoint for release-facing metadata, GHCR images and future signed agent packages. Agent installers are not published until the Windows Authenticode and update-manifest signing gates both pass.
 
 ## License
 
